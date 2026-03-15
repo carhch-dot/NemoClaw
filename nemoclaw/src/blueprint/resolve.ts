@@ -4,6 +4,7 @@
 import type { NemoClawConfig } from "../index.js";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { fetchBlueprint } from "./fetch.js";
 
 export interface BlueprintManifest {
   version: string;
@@ -78,21 +79,4 @@ export async function resolveBlueprint(config: NemoClawConfig): Promise<Resolved
   return fetchBlueprint(config.blueprintRegistry, version);
 }
 
-function fetchBlueprint(registry: string, version: string): Promise<ResolvedBlueprint> {
-  // Not yet implemented. The intended flow is:
-  // 1. Resolve "latest" to a concrete version tag via registry API
-  // 2. Download the blueprint tarball from the OCI registry
-  // 3. Verify digest (SHA-256) against the registry manifest
-  // 4. Check compatibility metadata (min OpenShell/OpenClaw versions)
-  // 5. Extract to local cache dir
-  // 6. Return resolved blueprint
-  //
-  // For now, blueprints must be placed manually in the cache directory.
-  return Promise.reject(
-    new Error(
-      `Blueprint fetch not yet implemented. ` +
-        `Registry: ${registry}, Version: ${version}. ` +
-        `Place blueprint files in ${getCacheDir()}/<version>/ for local development.`,
-    ),
-  );
-}
+// fetchBlueprint is imported from ./fetch.ts

@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
-# NemoClaw demo setup — run this on the HOST to set up everything.
+# NemoClaw setup — run this on the HOST to set up everything.
 #
 # Prerequisites:
 #   - Docker running (Colima, Docker Desktop, or native)
@@ -12,7 +12,7 @@
 #
 # Usage:
 #   export NVIDIA_API_KEY=nvapi-...
-#   ./scripts/setup-demo.sh
+#   ./scripts/setup.sh
 #
 # What it does:
 #   1. Starts an OpenShell gateway (or reuses existing)
@@ -52,12 +52,15 @@ REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # 1. Gateway
 info "Checking OpenShell gateway..."
-if openshell status 2>&1 | grep -q "Healthy"; then
+if openshell status 2>&1 | grep -q "Connected"; then
   info "Gateway already running"
 else
   info "Starting OpenShell gateway..."
-  OPENSHELL_REGISTRY_TOKEN=$(gh auth token 2>/dev/null || echo "") \
-    openshell gateway start --name nemoclaw-demo 2>&1 | tail -3
+  REGISTRY_TOKEN="${GITHUB_TOKEN:-${GH_TOKEN:-$(gh auth token 2>/dev/null || echo "")}}"
+  GATEWAY_ARGS=(--name nemoclaw)
+  [ -n "$REGISTRY_TOKEN" ] && GATEWAY_ARGS+=(--registry-token "$REGISTRY_TOKEN")
+  command -v nvidia-smi > /dev/null 2>&1 && GATEWAY_ARGS+=(--gpu)
+  openshell gateway start "${GATEWAY_ARGS[@]}" 2>&1 | tail -5
 fi
 
 # 2. CoreDNS fix (Colima only)

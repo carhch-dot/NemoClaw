@@ -14,6 +14,7 @@ import { cliMigrate } from "./commands/migrate.js";
 import { cliLaunch } from "./commands/launch.js";
 import { cliConnect } from "./commands/connect.js";
 import { cliEject } from "./commands/eject.js";
+import { cliLogs } from "./commands/logs.js";
 
 export function registerCliCommands(ctx: PluginCliContext, api: OpenClawPluginApi): void {
   const { program, logger } = ctx;
@@ -69,6 +70,23 @@ export function registerCliCommands(ctx: PluginCliContext, api: OpenClawPluginAp
     .option("--sandbox <name>", "Sandbox name to connect to", pluginConfig.sandboxName)
     .action(async (opts: { sandbox: string }) => {
       await cliConnect({ sandbox: opts.sandbox, logger });
+    });
+
+  // openclaw nemoclaw logs
+  nemoclaw
+    .command("logs")
+    .description("Stream blueprint execution and sandbox logs")
+    .option("-f, --follow", "Follow log output", false)
+    .option("-n, --lines <count>", "Number of lines to show", "50")
+    .option("--run-id <id>", "Show logs for a specific blueprint run")
+    .action(async (opts: { follow: boolean; lines: string; runId?: string }) => {
+      await cliLogs({
+        follow: opts.follow,
+        lines: parseInt(opts.lines, 10),
+        runId: opts.runId,
+        logger,
+        pluginConfig,
+      });
     });
 
   // openclaw nemoclaw eject

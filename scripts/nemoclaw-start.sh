@@ -43,6 +43,21 @@ json.dump({
 os.chmod(path, 0o600)
 "
 
+# When running inside an OpenShell sandbox, route inference through the
+# gateway proxy (inference.local) instead of hitting the NVIDIA API directly.
+# The sandbox's egress proxy only allows inference.local:443.
+if [ "${OPENSHELL_SANDBOX:-}" = "1" ]; then
+  python3 -c "
+import json, os
+path = os.path.expanduser('~/.openclaw/agents/main/agent/models.json')
+if os.path.exists(path):
+    d = json.load(open(path))
+    if 'providers' in d and 'nvidia' in d['providers']:
+        d['providers']['nvidia']['baseUrl'] = 'https://inference.local/v1'
+        json.dump(d, open(path, 'w'), indent=2)
+"
+fi
+
 # Install NemoClaw plugin
 openclaw plugins install /opt/nemoclaw > /dev/null 2>&1 || true
 

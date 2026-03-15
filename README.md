@@ -1,6 +1,109 @@
 # NemoClaw — OpenClaw Plugin for OpenShell
 
-Migrate and run OpenClaw inside OpenShell with optional NIM-backed inference.
+Run OpenClaw inside an OpenShell sandbox with NVIDIA inference (Nemotron 3 Super 120B via [build.nvidia.com](https://build.nvidia.com), or local Ollama).
+
+## Installation
+
+### Requirements
+
+All platforms need:
+
+- `NVIDIA_API_KEY` — get one from [build.nvidia.com](https://build.nvidia.com)
+- A GitHub token with `read:packages` scope (for pulling OpenShell container images)
+
+### macOS (Colima or Docker Desktop)
+
+```bash
+# Install dependencies
+brew install colima docker gh
+pip install 'openshell @ git+https://github.com/NVIDIA/OpenShell.git'
+
+# Start Docker runtime
+colima start        # or use Docker Desktop
+
+# Clone and run
+git clone https://github.com/NVIDIA/openshell-openclaw-plugin.git
+cd openshell-openclaw-plugin
+export NVIDIA_API_KEY=nvapi-...
+./scripts/setup.sh
+```
+
+### Linux (native Docker)
+
+```bash
+# Install dependencies
+sudo apt-get install -y docker.io
+pip install 'openshell @ git+https://github.com/NVIDIA/OpenShell.git'
+
+# If you have an NVIDIA GPU, install the container toolkit:
+# https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
+
+# Clone and run
+git clone https://github.com/NVIDIA/openshell-openclaw-plugin.git
+cd openshell-openclaw-plugin
+export NVIDIA_API_KEY=nvapi-...
+./scripts/setup.sh
+```
+
+### Brev
+
+For Brev VMs, a bootstrap script handles all prerequisite installation (Docker, NVIDIA Container Toolkit, openshell CLI binary, GHCR auth):
+
+```bash
+# Create a Brev instance (GPU optional — inference is cloud-hosted)
+brev create nemoclaw --gpu "a2-highgpu-1g:nvidia-tesla-a100:1"
+brev shell nemoclaw
+
+# On the Brev VM:
+git clone https://github.com/NVIDIA/openshell-openclaw-plugin.git
+cd openshell-openclaw-plugin
+export NVIDIA_API_KEY=nvapi-...
+export GITHUB_TOKEN=ghp_...    # needs read:packages scope
+./scripts/brev-setup.sh
+```
+
+`brev-setup.sh` installs Docker, the NVIDIA Container Toolkit (if GPU present), the `openshell` CLI from a pre-built binary, authenticates with `ghcr.io`, then runs `setup.sh` automatically.
+
+### Other cloud VMs (EC2, GCE, Azure)
+
+Any Ubuntu 22.04+ VM with Docker works. The Brev bootstrap script is a good reference — the same steps apply:
+
+1. Install Docker and (optionally) the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+2. Install the `openshell` CLI — either `pip install 'openshell @ git+https://github.com/NVIDIA/OpenShell.git'` or download the binary from [GitHub releases](https://github.com/NVIDIA/OpenShell/releases)
+3. Authenticate Docker with `ghcr.io` (`docker login ghcr.io`)
+4. Clone this repo and run `./scripts/setup.sh`
+
+## Usage
+
+### Connect to the sandbox
+
+```bash
+openshell sandbox connect nemoclaw
+export NVIDIA_API_KEY=nvapi-...
+nemoclaw-start
+```
+
+### Run OpenClaw
+
+```bash
+openclaw agent --agent main --local -m "your prompt" --session-id s1
+```
+
+### Switch inference providers
+
+```bash
+# NVIDIA cloud (Nemotron 3 Super 120B)
+openshell inference set --provider nvidia-nim --model nvidia/nemotron-3-super-120b-a12b
+
+# Local Ollama (Nemotron Mini)
+openshell inference set --provider ollama-local --model nemotron-mini
+```
+
+### Monitor
+
+```bash
+openshell term
+```
 
 ## Architecture
 
@@ -33,49 +136,14 @@ nemoclaw-blueprint/                 Versioned blueprint artifact (separate relea
 └── iac/                            (future) Declarative infrastructure modules
 ```
 
-## Quick Start
+## Scripts
 
-### Prerequisites
-
-- Docker running (Colima, Docker Desktop, or native Linux)
-- `openshell` CLI: `pip install 'openshell @ git+https://github.com/NVIDIA/OpenShell.git'`
-- `gh` CLI authenticated with `read:packages` scope
-- `NVIDIA_API_KEY` from [build.nvidia.com](https://build.nvidia.com)
-
-### One-command setup
-
-```bash
-export NVIDIA_API_KEY=nvapi-...
-./scripts/setup-demo.sh
-```
-
-This starts the gateway, patches DNS (Colima), creates providers (NVIDIA cloud +
-local Ollama if running), sets the inference route, and builds the sandbox.
-
-### Connect and use
-
-```bash
-openshell sandbox connect nemoclaw
-export NVIDIA_API_KEY=nvapi-...
-nemoclaw-start
-openclaw agent --agent main --local -m "your prompt" --session-id s1
-```
-
-### Switch inference providers
-
-```bash
-# NVIDIA cloud (Nemotron 3 Super 120B)
-openshell inference set --provider nvidia-nim --model nvidia/nemotron-3-super-120b-a12b
-
-# Local Ollama (Nemotron Mini)
-openshell inference set --provider ollama-local --model nemotron-mini
-```
-
-### Monitor
-
-```bash
-openshell term
-```
+| Script | Purpose |
+|--------|---------|
+| `scripts/setup.sh` | Host-side setup — gateway, providers, inference route, sandbox |
+| `scripts/brev-setup.sh` | Brev bootstrap — installs prerequisites, then runs `setup.sh` |
+| `scripts/nemoclaw-start.sh` | Sandbox entrypoint — configures OpenClaw, installs plugin |
+| `scripts/fix-coredns.sh` | CoreDNS patch for Colima environments |
 
 ## Commands
 
