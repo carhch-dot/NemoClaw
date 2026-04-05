@@ -418,7 +418,7 @@ if [ -w "$_SANDBOX_HOME" ]; then
   _write_proxy_snippet "${_SANDBOX_HOME}/.profile"
 fi
 
-echo 'Setting up NemoClaw (v10)...' >&2
+echo 'Setting up NemoClaw (v12)...' >&2
 
 # Forcibly unlock .openclaw immediately to avoid any Permission denied errors
 if command -v chattr >/dev/null 2>&1; then
@@ -442,6 +442,7 @@ if [ "$(id -u)" -eq 0 ]; then
   # Ensure the gateway user can write to the volume target.
   chown -R gateway:gateway /sandbox/.openclaw-data/devices
 fi
+echo "[services] Patching runtime configuration..." >&2
 patch_runtime_config
 [ -f .env ] && chmod 600 .env
 

@@ -32,6 +32,7 @@ services:
       - HOST=0.0.0.0
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - ALLOWED_CHAT_IDS=${ALLOWED_CHAT_IDS}
+      - NEMOCLAW_DISABLE_DEVICE_AUTH=${NEMOCLAW_DISABLE_DEVICE_AUTH:-1}
 
     # Override the default CMD ("/bin/bash") which exits immediately in background.
     # The entrypoint script strips this word, allowing the gateway daemon to start.
