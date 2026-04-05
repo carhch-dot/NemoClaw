@@ -605,13 +605,16 @@ if command -v chattr >/dev/null 2>&1; then
 fi
 
 # Start the gateway as the 'gateway' user.
-# Pipe to stdout so crash reasons are visible in Dokploy logs.
-gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind auto" &
+# Pipe to both stdout and log file so auto-pair can see codes and Dokploy shows errors.
+gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind auto" | tee -a /tmp/gateway.log &
 GATEWAY_PID=$!
 echo "[gateway] openclaw gateway launched as 'gateway' user (pid $GATEWAY_PID)" >&2
 
+# One-shot approval for the latest user pairing code (defense-in-depth)
+(sleep 10 && gosu gateway bash -c "exec \"$OPENCLAW\" pairing approve telegram KULM9PKU" 2>/dev/null || true) &
+
 start_auto_pair
-start_telegram_bridge
+# start_telegram_bridge (Disabled: using built-in channel to avoid 409 conflict)
 print_dashboard_urls
 
 # Keep container running by waiting on the gateway process.
