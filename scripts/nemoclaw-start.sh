@@ -321,6 +321,7 @@ PYAUTOPAIR
 
 start_telegram_bridge() {
   if [ -z "${TELEGRAM_BOT_TOKEN:-}" ]; then
+    echo "[services] Telegram bridge skipped: TELEGRAM_BOT_TOKEN not set" >&2
     return
   fi
 
@@ -419,7 +420,7 @@ fi
 
 # ── Main ─────────────────────────────────────────────────────────
 
-echo 'Setting up NemoClaw (v4)...' >&2
+echo 'Setting up NemoClaw (v5)...' >&2
 patch_runtime_config
 [ -f .env ] && chmod 600 .env
 
