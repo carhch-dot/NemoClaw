@@ -115,8 +115,8 @@ verify_config_integrity() {
   fi
 }
 
-patch_allowed_origins() {
-  if [ -z "${CHAT_UI_URL:-}" ]; then
+patch_runtime_config() {
+  if [ -z "${CHAT_UI_URL:-}" ] && [ -z "${NEMOCLAW_DISABLE_DEVICE_AUTH:-}" ]; then
     return
   fi
 
@@ -125,16 +125,12 @@ patch_allowed_origins() {
     chattr -i /sandbox/.openclaw /sandbox/.openclaw/openclaw.json /sandbox/.openclaw/.config-hash 2>/dev/null || true
   fi
 
-  python3 - <<'PYCORS'
+  python3 - <<'PYCONFIG'
 import json, os, hashlib
 from urllib.parse import urlparse
 
 url = os.environ.get('CHAT_UI_URL', '')
-if not url:
-    exit(0)
-
-parsed = urlparse(url)
-origin = f'{parsed.scheme}://{parsed.netloc}' if parsed.scheme and parsed.netloc else 'http://127.0.0.1:18789'
+disable_device_auth = os.environ.get('NEMOCLAW_DISABLE_DEVICE_AUTH', '') == '1'
 
 path = '/sandbox/.openclaw/openclaw.json'
 hash_file = '/sandbox/.openclaw/.config-hash'
@@ -145,14 +141,28 @@ try:
 except Exception:
     exit(0)
 
-origins = config.get('gateway', {}).get('controlUi', {}).get('allowedOrigins', [])
-if origin not in origins:
-    print(f'[gateway] dynamic-cors: adding origin {origin}')
-    origins.append(origin)
-    config['gateway']['controlUi']['allowedOrigins'] = list(dict.fromkeys(origins))
-    
-    # Must be root to chmod/write if it was locked.
-    # The entrypoint runs as root initially.
+modified = False
+
+# 1. Patch Allowed Origins
+if url:
+    parsed = urlparse(url)
+    origin = f'{parsed.scheme}://{parsed.netloc}' if parsed.scheme and parsed.netloc else 'http://127.0.0.1:18789'
+    origins = config.get('gateway', {}).get('controlUi', {}).get('allowedOrigins', [])
+    if origin not in origins:
+        print(f'[gateway] dynamic-config: adding origin {origin}')
+        origins.append(origin)
+        config.setdefault('gateway', {}).setdefault('controlUi', {})['allowedOrigins'] = list(dict.fromkeys(origins))
+        modified = True
+
+# 2. Patch Device Auth
+if disable_device_auth:
+    current = config.get('gateway', {}).get('controlUi', {}).get('dangerouslyDisableDeviceAuth', False)
+    if not current:
+        print(f'[gateway] dynamic-config: disabling device auth (headless mode)')
+        config.setdefault('gateway', {}).setdefault('controlUi', {})['dangerouslyDisableDeviceAuth'] = True
+        modified = True
+
+if modified:
     try:
         os.chmod(path, 0o600)
         with open(path, 'w') as f:
@@ -166,8 +176,8 @@ if origin not in origins:
             f.write(f'{new_hash}  /sandbox/.openclaw/openclaw.json\n')
         os.chmod(hash_file, 0o444)
     except Exception as e:
-        print(f'[gateway] dynamic-cors error: {e}')
-PYCORS
+        print(f'[gateway] dynamic-config error: {e}')
+PYCONFIG
 }
 
 write_auth_profile() {
@@ -388,7 +398,7 @@ fi
 # ── Main ─────────────────────────────────────────────────────────
 
 echo 'Setting up NemoClaw...' >&2
-patch_allowed_origins
+patch_runtime_config
 [ -f .env ] && chmod 600 .env
 
 # ── Non-root fallback ──────────────────────────────────────────
