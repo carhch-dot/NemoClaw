@@ -122,7 +122,7 @@ config = { \
     'agents': {'defaults': {'model': {'primary': primary_model_ref}}}, \
     'models': {'mode': 'merge', 'providers': providers}, \
     'gateway': { \
-        'mode': 'standalone', \
+        'mode': 'local', \
         'controlUi': { \
             'allowInsecureAuth': allow_insecure, \
             'dangerouslyDisableDeviceAuth': disable_device_auth, \

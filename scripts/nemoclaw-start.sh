@@ -206,7 +206,7 @@ gateway_token = os.environ.get('NEMOCLAW_GATEWAY_TOKEN', '')
 # 1. Patch Gateway Connectivity
 parsed = urlparse(url)
 config.setdefault('gateway', {})
-config['gateway']['mode'] = 'standalone'
+config['gateway']['mode'] = 'local'
 config.setdefault('gateway', {}).setdefault('controlUi', {})
 config['gateway']['controlUi']['allowedOrigins'] = ['*']
 if parsed.scheme == 'http':
