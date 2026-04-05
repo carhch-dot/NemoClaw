@@ -458,16 +458,16 @@ if [ "$(id -u)" -eq 0 ]; then
   rm -rf /sandbox/.openclaw/devices
   ln -sf /sandbox/.openclaw-data/devices /sandbox/.openclaw/devices
   
-  # Ensure the gateway user can write to the volume targets.
-  # They also need to be able to read/write identity and other state.
-  mkdir -p /sandbox/.openclaw-data/logs
+  # Ensure the gateway and sandbox users can both read/write to the shared state.
+  mkdir -p /sandbox/.openclaw-data/logs /sandbox/.openclaw-data/cron
   touch /sandbox/.openclaw-data/gateway.pid
-  chown -R gateway:gateway /sandbox/.openclaw-data
   
-  # But the sandbox user (agent) also needs access to some of these.
-  # Make it group-writable and add sandbox to gateway group.
-  chmod -R 775 /sandbox/.openclaw-data
+  # Bidirectional group membership for shared access
   usermod -aG gateway sandbox || true
+  usermod -aG sandbox gateway || true
+  
+  chown -R gateway:gateway /sandbox/.openclaw-data
+  chmod -R 775 /sandbox/.openclaw-data
 
   # Redirect PID and logs to writable location
   ln -sf /sandbox/.openclaw-data/gateway.pid /sandbox/.openclaw/gateway.pid
