@@ -418,18 +418,18 @@ if [ -w "$_SANDBOX_HOME" ]; then
   _write_proxy_snippet "${_SANDBOX_HOME}/.profile"
 fi
 
-# ── Main ─────────────────────────────────────────────────────────
+echo 'Setting up NemoClaw (v10)...' >&2
 
-echo 'Setting up NemoClaw (v9)...' >&2
+# Forcibly unlock .openclaw immediately to avoid any Permission denied errors
+if command -v chattr >/dev/null 2>&1; then
+  chattr -i /sandbox/.openclaw 2>/dev/null || true
+  chattr -i /sandbox/.openclaw/openclaw.json 2>/dev/null || true
+  chattr -i /sandbox/.openclaw/devices 2>/dev/null || true
+fi
 
 # Proactively fix .openclaw permissions/symlinks for gateway user (UID 1001)
 # Specifically the 'devices' directory which needs to be writable for pairing.
 if [ "$(id -u)" -eq 0 ]; then
-  # Unlock directory just in case it was locked by a previous run
-  if command -v chattr >/dev/null 2>&1; then
-    chattr -i /sandbox/.openclaw 2>/dev/null || true
-  fi
-
   mkdir -p /sandbox/.openclaw-data/devices
   # If it's a real directory (created by build), move content to volume.
   if [ -d /sandbox/.openclaw/devices ] && [ ! -L /sandbox/.openclaw/devices ]; then
