@@ -66,22 +66,20 @@ if [ "${NEMOCLAW_CAPS_DROPPED:-}" != "1" ]; then
   fi
 
   # Ensure state directories exist on volume
-  # Using explicit error check for mkdir
-  if ! mkdir -p /sandbox/.openclaw-data/logs /sandbox/.openclaw-data/cron /sandbox/.openclaw-data/devices; then
-    echo "CRITICAL ERROR: mkdir failed even as root. Checking for file collision..." >&2
-    [ -f /sandbox/.openclaw-data ] && echo "ERROR: /sandbox/.openclaw-data is a FILE, not a directory!" >&2
-    [ -f /sandbox/.openclaw-data/logs ] && echo "ERROR: /sandbox/.openclaw-data/logs is a FILE, not a directory!" >&2
-    exit 1
-  fi
-  
+  mkdir -p /sandbox/.openclaw-data/logs /sandbox/.openclaw-data/cron /sandbox/.openclaw-data/devices /sandbox/.openclaw-data/agents/main/agent
   touch /sandbox/.openclaw-data/gateway.pid
   
   # Shared group membership
   usermod -aG gateway sandbox || true
   usermod -aG sandbox gateway || true
   
-  # Ensure correct ownership of the writable state
-  chown -R gateway:gateway /sandbox/.openclaw-data
+  # Default: sandbox owns the data (including agents, skills, workspace)
+  chown -R sandbox:sandbox /sandbox/.openclaw-data
+  
+  # Exception: gateway user needs these specifically for pairing and logging
+  chown -R gateway:gateway /sandbox/.openclaw-data/devices /sandbox/.openclaw-data/logs /sandbox/.openclaw-data/gateway.pid
+  
+  # Allow group access for the shared components
   chmod -R 775 /sandbox/.openclaw-data
 
   # Setup symlinks in .openclaw (which is owned by root)
@@ -258,7 +256,7 @@ write_auth_profile() {
   python3 - <<'PYAUTH'
 import json
 import os
-path = os.path.expanduser('~/.openclaw/agents/main/agent/auth-profiles.json')
+path = '/sandbox/.openclaw/agents/main/agent/auth-profiles.json'
 os.makedirs(os.path.dirname(path), exist_ok=True)
 json.dump({
     'nvidia:manual': {
@@ -501,37 +499,8 @@ fi
 verify_config_integrity || exit 1
 patch_runtime_config
 
-# Proactively fix .openclaw permissions/symlinks for gateway user (UID 1001)
-# Specifically the 'devices' directory which needs to be writable for pairing.
-if [ "$(id -u)" -eq 0 ]; then
-  mkdir -p /sandbox/.openclaw-data/devices
-  # If it's a real directory (created by build), move content to volume.
-  if [ -d /sandbox/.openclaw/devices ] && [ ! -L /sandbox/.openclaw/devices ]; then
-    cp -rp /sandbox/.openclaw/devices/* /sandbox/.openclaw-data/devices/ 2>/dev/null || true
-  fi
-  # Forcibly remove existing link or file to avoid nesting 'devices/devices'
-  rm -rf /sandbox/.openclaw/devices
-  ln -sf /sandbox/.openclaw-data/devices /sandbox/.openclaw/devices
-  
-  # Ensure the gateway and sandbox users can both read/write to the shared state.
-  mkdir -p /sandbox/.openclaw-data/logs /sandbox/.openclaw-data/cron
-  touch /sandbox/.openclaw-data/gateway.pid
-  
-  # Bidirectional group membership for shared access
-  usermod -aG gateway sandbox || true
-  usermod -aG sandbox gateway || true
-  
-  chown -R gateway:gateway /sandbox/.openclaw-data
-  chmod -R 775 /sandbox/.openclaw-data
-
-  # Redirect PID and logs to writable location
-  ln -sf /sandbox/.openclaw-data/gateway.pid /sandbox/.openclaw/gateway.pid
-  ln -sf /sandbox/.openclaw-data/logs /sandbox/.openclaw/logs
-
-  # Auto-fix config based on latest doctor checks (e.g. enabling Telegram)
-  echo "[services] Running openclaw doctor --fix..." >&2
-  "$OPENCLAW" doctor --fix >/dev/null 2>&1 || true
-fi
+# ── Runtime preparation ──────────────────────────────────────────
+# Configuration patching is handled by patch_runtime_config
 echo "[services] Patching runtime configuration..." >&2
 patch_runtime_config
 [ -f .env ] && chmod 600 .env
