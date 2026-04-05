@@ -207,7 +207,9 @@ if url:
         print(f'[gateway] dynamic-config: adding origin {origin}')
         origins.append(origin)
         config.setdefault('gateway', {}).setdefault('controlUi', {})['allowedOrigins'] = list(dict.fromkeys(origins))
-        modified = True
+    if parsed.scheme == 'http':
+        config.setdefault('gateway', {}).setdefault('controlUi', {})['allowInsecureAuth'] = True
+    modified = True
 
 # 2. Patch Device Auth
 if disable_device_auth:
