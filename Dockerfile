@@ -181,6 +181,10 @@ RUN sha256sum /sandbox/.openclaw/openclaw.json > /sandbox/.openclaw/.config-hash
 EXPOSE 18789
 EXPOSE 18791
 
+# Health check to ensure the gateway is listening
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:18789/ || exit 1
+
 # Entrypoint runs as root to start the gateway as the gateway user,
 # then drops to sandbox for agent commands. See nemoclaw-start.sh.
 ENTRYPOINT ["/usr/local/bin/nemoclaw-start"]
