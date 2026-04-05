@@ -345,55 +345,54 @@ def run(*args):
     return proc.returncode, proc.stdout.strip(), proc.stderr.strip()
 
 while time.time() < DEADLINE:
+    has_browser = False
+    # 1. Approve devices (CLI)
     rc, out, err = run(OPENCLAW, 'devices', 'list', '--json')
-    if rc != 0 or not out:
-        time.sleep(1)
-        continue
-    try:
-        data = json.loads(out)
-    except Exception:
-        time.sleep(1)
-        continue
+    if rc == 0 and out:
+        try:
+            data = json.loads(out)
+            pending = data.get('pending') or []
+            paired = data.get('paired') or []
+            has_browser = any((d.get('clientId') == 'openclaw-control-ui') or (d.get('clientMode') == 'webchat') for d in paired if isinstance(d, dict))
 
-    pending = data.get('pending') or []
-    paired = data.get('paired') or []
-    has_browser = any((d.get('clientId') == 'openclaw-control-ui') or (d.get('clientMode') == 'webchat') for d in paired if isinstance(d, dict))
+            for device in pending:
+                if not isinstance(device, dict): continue
+                request_id = device.get('requestId')
+                if not request_id or request_id in HANDLED: continue
+                client_id = device.get('clientId', '')
+                client_mode = device.get('clientMode', '')
+                if client_id in ALLOWED_CLIENTS or client_mode in ALLOWED_MODES:
+                    arc, aout, aerr = run(OPENCLAW, 'devices', 'approve', request_id, '--json')
+                    HANDLED.add(request_id)
+                    if arc == 0:
+                        APPROVED += 1
+                        print(f'[auto-pair] approved device request={request_id}')
+        except Exception: pass
 
-    if pending:
-        QUIET_POLLS = 0
-        for device in pending:
-            if not isinstance(device, dict):
-                continue
-            request_id = device.get('requestId')
-            if not request_id or request_id in HANDLED:
-                continue
-            client_id = device.get('clientId', '')
-            client_mode = device.get('clientMode', '')
-            if client_id not in ALLOWED_CLIENTS and client_mode not in ALLOWED_MODES:
-                HANDLED.add(request_id)
-                print(f'[auto-pair] rejected unknown client={client_id} mode={client_mode}')
-                continue
-            arc, aout, aerr = run(OPENCLAW, 'devices', 'approve', request_id, '--json')
-            HANDLED.add(request_id)
-            if arc == 0:
-                APPROVED += 1
-                print(f'[auto-pair] approved request={request_id} client={client_id}')
-            elif aout or aerr:
-                print(f'[auto-pair] approve failed request={request_id}: {(aerr or aout)[:400]}')
-        time.sleep(1)
-        continue
+    # 2. Scrape logs for Telegram pairing codes (OpenClaw < v2026.4 lacks pairing list --json)
+    if os.path.exists('/tmp/gateway.log'):
+        try:
+            with open('/tmp/gateway.log', 'r') as f:
+                # Seek to end or last 10k to avoid re-approving old stuff (though 'approve' is idempotent)
+                content = f.read()
+                import re
+                codes = re.findall(r'Pairing code: ([A-Z]{8})', content)
+                for code in codes:
+                    if code not in HANDLED:
+                        prc, pout, perr = run(OPENCLAW, 'pairing', 'approve', 'telegram', code)
+                        HANDLED.add(code)
+                        if prc == 0:
+                            APPROVED += 1
+                            print(f'[auto-pair] approved telegram pairing code={code}')
+        except Exception: pass
 
     if has_browser:
         QUIET_POLLS += 1
         if QUIET_POLLS >= 4:
-            print(f'[auto-pair] browser pairing converged approvals={APPROVED}')
+            print(f'[auto-pair] pairing converged approvals={APPROVED}')
             break
-    elif APPROVED > 0:
-        QUIET_POLLS += 1
-    else:
-        QUIET_POLLS = 0
-
-    time.sleep(1)
+    
+    time.sleep(2)
 else:
     print(f'[auto-pair] watcher timed out approvals={APPROVED}')
 PYAUTOPAIR
