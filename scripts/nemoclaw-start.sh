@@ -83,6 +83,9 @@ if [ "${NEMOCLAW_CAPS_DROPPED:-}" != "1" ]; then
   chmod -R 775 /sandbox/.openclaw-data
 
   # Setup symlinks in .openclaw (which is owned by root)
+  # Force removal of existing targets to avoid nesting (e.g. logs/logs)
+  rm -rf /sandbox/.openclaw/gateway.pid /sandbox/.openclaw/logs /sandbox/.openclaw/devices
+  
   ln -sf /sandbox/.openclaw-data/gateway.pid /sandbox/.openclaw/gateway.pid
   ln -sf /sandbox/.openclaw-data/logs /sandbox/.openclaw/logs
   ln -sf /sandbox/.openclaw-data/devices /sandbox/.openclaw/devices
