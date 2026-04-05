@@ -16,9 +16,9 @@ FROM node:22-slim@sha256:4f77a690f2f8946ab16fe1e791a3ac0667ae1c3575c3e4d0d4589e9
 WORKDIR /opt/nemoclaw
 COPY . .
 # 1. Build the plugin
-RUN cd nemoclaw && npm install && npm run build
-# 2. Build the CLI
-RUN npm install && npm run build:cli
+RUN cd nemoclaw && npm install --ignore-scripts && ./node_modules/.bin/tsc
+# 2. Build the CLI 
+RUN npm install --ignore-scripts && ./node_modules/.bin/tsc -p tsconfig.src.json
 
 # Stage 2: Runtime image — pull cached base from GHCR
 FROM ${BASE_IMAGE}
