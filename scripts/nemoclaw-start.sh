@@ -420,19 +420,25 @@ fi
 
 # ── Main ─────────────────────────────────────────────────────────
 
-echo 'Setting up NemoClaw (v8)...' >&2
+echo 'Setting up NemoClaw (v9)...' >&2
 
 # Proactively fix .openclaw permissions/symlinks for gateway user (UID 1001)
 # Specifically the 'devices' directory which needs to be writable for pairing.
 if [ "$(id -u)" -eq 0 ]; then
+  # Unlock directory just in case it was locked by a previous run
+  if command -v chattr >/dev/null 2>&1; then
+    chattr -i /sandbox/.openclaw 2>/dev/null || true
+  fi
+
   mkdir -p /sandbox/.openclaw-data/devices
-  # If it's a real directory (created by build or older version), move content to volume and link it.
+  # If it's a real directory (created by build), move content to volume.
   if [ -d /sandbox/.openclaw/devices ] && [ ! -L /sandbox/.openclaw/devices ]; then
     cp -rp /sandbox/.openclaw/devices/* /sandbox/.openclaw-data/devices/ 2>/dev/null || true
-    rm -rf /sandbox/.openclaw/devices
   fi
-  # Ensure the symlink exists and target is correct.
+  # Forcibly remove existing link or file to avoid nesting 'devices/devices'
+  rm -rf /sandbox/.openclaw/devices
   ln -sf /sandbox/.openclaw-data/devices /sandbox/.openclaw/devices
+  
   # Ensure the gateway user can write to the volume target.
   chown -R gateway:gateway /sandbox/.openclaw-data/devices
 fi
