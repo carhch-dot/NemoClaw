@@ -131,7 +131,11 @@ config = { \
         'auth': {'token': gateway_token} \
     }, \
     'channels': { \
-        'telegram': {'enabled': True} \
+        'telegram': { \
+            'enabled': True, \
+            'policy': 'open', \
+            'groupPolicy': 'open' \
+        } \
     } \
 }; \
 config.update({ \

@@ -240,6 +240,16 @@ if any(t not in current_trusted for t in trusted):
     config.setdefault('gateway', {})['trustedProxies'] = list(dict.fromkeys(current_trusted + trusted))
     modified = True
 
+# 3. Patch Telegram Channel Policy
+config.setdefault('channels', {}).setdefault('telegram', {})
+# Don't overwrite if user has custom settings, but for initial/default, 'open' is required for Bot Father setup
+if not config['channels']['telegram'].get('policy'):
+    config['channels']['telegram']['policy'] = 'open'
+if not config['channels']['telegram'].get('groupPolicy'):
+    config['channels']['telegram']['groupPolicy'] = 'open'
+config['channels']['telegram']['enabled'] = True
+modified = True
+
 if modified:
     try:
         os.chmod(path, 0o600)
@@ -390,7 +400,7 @@ while time.time() < DEADLINE:
             print(f'[auto-pair] pairing converged approvals={APPROVED}')
             break
     
-    time.sleep(2)
+    time.sleep(1)
 else:
     print(f'[auto-pair] watcher timed out approvals={APPROVED}')
 PYAUTOPAIR
