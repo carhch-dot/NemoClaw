@@ -420,7 +420,7 @@ fi
 
 # ── Main ─────────────────────────────────────────────────────────
 
-echo 'Setting up NemoClaw (v5)...' >&2
+echo 'Setting up NemoClaw (v6)...' >&2
 patch_runtime_config
 [ -f .env ] && chmod 600 .env
 
