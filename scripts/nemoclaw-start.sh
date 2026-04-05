@@ -319,6 +319,28 @@ PYAUTOPAIR
   echo "[gateway] auto-pair watcher launched (pid $!)" >&2
 }
 
+start_telegram_bridge() {
+  if [ -z "${TELEGRAM_BOT_TOKEN:-}" ]; then
+    return
+  fi
+
+  echo 'Starting Telegram bridge...' >&2
+  touch /tmp/telegram-bridge.log
+  chmod 666 /tmp/telegram-bridge.log
+
+  # Local mode for bridge
+  export TELEGRAM_BRIDGE_LOCAL=1
+  
+  if [ "$(id -u)" -eq 0 ]; then
+    # Root mode: run as sandbox user
+    nohup gosu sandbox bash -c "exec node /opt/nemoclaw/scripts/telegram-bridge.js" >>/tmp/telegram-bridge.log 2>&1 &
+  else
+    # Non-root mode: run as current user
+    nohup node /opt/nemoclaw/scripts/telegram-bridge.js >>/tmp/telegram-bridge.log 2>&1 &
+  fi
+  echo "[services] Telegram bridge started (pid $!)" >&2
+}
+
 # ── Proxy environment ────────────────────────────────────────────
 # OpenShell injects HTTP_PROXY/HTTPS_PROXY/NO_PROXY into the sandbox, but its
 # NO_PROXY is limited to 127.0.0.1,localhost,::1 — missing the gateway IP.
