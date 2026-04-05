@@ -18,7 +18,7 @@ COPY . .
 # 1. Build the plugin
 RUN cd nemoclaw && npm install && npm run build
 # 2. Build the CLI
-RUN npm install && npx tsc -p tsconfig.src.json
+RUN npm install && npm run build:cli
 
 # Stage 2: Runtime image — pull cached base from GHCR
 FROM ${BASE_IMAGE}
