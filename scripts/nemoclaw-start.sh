@@ -245,6 +245,9 @@ if modified:
         # Recalculate hash
         with open(path, 'rb') as f:
             new_hash = hashlib.sha256(f.read()).hexdigest()
+        
+        if os.path.exists(hash_file):
+            os.chmod(hash_file, 0o600)
         with open(hash_file, 'w') as f:
             f.write(f'{new_hash}  /sandbox/.openclaw/openclaw.json\n')
         os.chmod(hash_file, 0o444)
@@ -538,7 +541,7 @@ if [ "$(id -u)" -ne 0 ]; then
   chmod 600 /tmp/auto-pair.log
 
   # Start gateway in background, auto-pair, then wait
-  nohup "$OPENCLAW" gateway run --bind any >/tmp/gateway.log 2>&1 &
+  nohup "$OPENCLAW" gateway run --bind auto >/tmp/gateway.log 2>&1 &
   GATEWAY_PID=$!
   echo "[gateway] openclaw gateway launched (pid $GATEWAY_PID)" >&2
   start_auto_pair
@@ -599,7 +602,7 @@ fi
 
 # Start the gateway as the 'gateway' user.
 # Pipe to stdout so crash reasons are visible in Dokploy logs.
-gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind any" &
+gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind auto" &
 GATEWAY_PID=$!
 echo "[gateway] openclaw gateway launched as 'gateway' user (pid $GATEWAY_PID)" >&2
 
