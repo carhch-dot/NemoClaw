@@ -18,6 +18,12 @@
 
 set -euo pipefail
 
+# ── Ensure we are running as root ─────────────────────────────────
+if [ "$(id -u)" -ne 0 ]; then
+  echo "ERROR: NemoClaw must be started as root (to handle user isolation/volumes)." >&2
+  exit 1
+fi
+
 # Harden: limit process count to prevent fork bombs (ref: #809)
 # Best-effort: some container runtimes (e.g., brev) restrict ulimit
 # modification, returning "Invalid argument". Warn but don't block startup.

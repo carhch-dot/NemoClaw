@@ -85,7 +85,6 @@ ENV NEMOCLAW_MODEL=${NEMOCLAW_MODEL} \
     NEMOCLAW_DISABLE_DEVICE_AUTH=${NEMOCLAW_DISABLE_DEVICE_AUTH}
 
 WORKDIR /sandbox
-USER sandbox
 
 # Write the COMPLETE openclaw.json including gateway config and auth token.
 # This file is immutable at runtime (Landlock read-only on /sandbox/.openclaw).
