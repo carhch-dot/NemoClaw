@@ -418,7 +418,7 @@ if [ -w "$_SANDBOX_HOME" ]; then
   _write_proxy_snippet "${_SANDBOX_HOME}/.profile"
 fi
 
-echo 'Setting up NemoClaw (v13)...' >&2
+echo 'Setting up NemoClaw (v14)...' >&2
 
 # Forcibly unlock .openclaw immediately to avoid any Permission denied errors
 if command -v chattr >/dev/null 2>&1; then
@@ -537,10 +537,8 @@ if command -v chattr >/dev/null 2>&1; then
 fi
 
 # Start the gateway as the 'gateway' user.
-# SECURITY: The sandbox user cannot kill this process because it runs
-# under a different UID. The fake-HOME attack no longer works because
-# the agent cannot restart the gateway with a tampered config.
-nohup gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind all >/tmp/gateway.log 2>&1" >/dev/null 2>&1 &
+# Pipe to stdout so crash reasons are visible in Dokploy logs.
+gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind all" &
 GATEWAY_PID=$!
 echo "[gateway] openclaw gateway launched as 'gateway' user (pid $GATEWAY_PID)" >&2
 
