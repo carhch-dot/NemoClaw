@@ -1,20 +1,13 @@
 # NemoClaw — Dokploy deployment configuration
 #
-# HOW TO USE:
-# 1. Import this file in Dokploy as a "Docker Compose" project
-# 2. Set the environment variables in the Dokploy UI (Environment tab)
-# 3. Set Traefik labels: replace "nemoclaw.yourdomain.com" with your real domain
-# 4. Deploy!
+# Required environment variables (set in Dokploy → Environment tab):
+#   NVIDIA_API_KEY              - Your NVIDIA API key from https://build.nvidia.com
+#   CHAT_UI_URL                 - Your public URL (auto-generated traefik.me or custom domain)
 #
-# Required environment variables (set in Dokploy → Environment):
-#   NVIDIA_API_KEY         - Your NVIDIA API key from https://build.nvidia.com
-#   CHAT_UI_URL            - Your public URL, e.g. https://nemoclaw.yourdomain.com
-#
-# Build args (set in Dokploy → Build Args, or leave defaults):
-#   NEMOCLAW_MODEL         - Model ID (default: nvidia/nemotron-3-super-120b-a12b)
-#   NEMOCLAW_PROVIDER_KEY  - Provider key (default: nvidia)
+# Build args (Dokploy → Build Args, or leave defaults):
+#   NEMOCLAW_MODEL              - Model ID (default: nvidia/nemotron-3-super-120b-a12b)
 #   NEMOCLAW_INFERENCE_BASE_URL - Inference API (default: https://integrate.api.nvidia.com/v1)
-#   NEMOCLAW_DISABLE_DEVICE_AUTH - Set to 1 to skip device-pairing auth (headless)
+#   NEMOCLAW_DISABLE_DEVICE_AUTH- Set to 1 to skip device-pairing auth (recommended for cloud)
 
 services:
   nemoclaw:
@@ -22,65 +15,32 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        # Model + inference configuration — baked into the image at build time.
-        # Change these in Dokploy → Build Args to switch model or provider.
         NEMOCLAW_MODEL: ${NEMOCLAW_MODEL:-nvidia/nemotron-3-super-120b-a12b}
         NEMOCLAW_PROVIDER_KEY: ${NEMOCLAW_PROVIDER_KEY:-nvidia}
         NEMOCLAW_PRIMARY_MODEL_REF: ${NEMOCLAW_MODEL:-nvidia/nemotron-3-super-120b-a12b}
         NEMOCLAW_INFERENCE_BASE_URL: ${NEMOCLAW_INFERENCE_BASE_URL:-https://integrate.api.nvidia.com/v1}
         NEMOCLAW_INFERENCE_API: ${NEMOCLAW_INFERENCE_API:-openai-completions}
-        # Public URL for the Web UI — used for CORS allowed origins.
-        # Must match the domain you configure in Traefik below.
-        CHAT_UI_URL: ${CHAT_UI_URL:-https://nemoclaw.yourdomain.com}
-        # Set to "1" to disable device-pairing auth (easy headless access).
-        # Recommended for cloud deployments where you want instant browser access.
+        CHAT_UI_URL: ${CHAT_UI_URL:-http://localhost:18789}
+        # Set to "1" to skip device-pairing auth — recommended for cloud deployments
         NEMOCLAW_DISABLE_DEVICE_AUTH: ${NEMOCLAW_DISABLE_DEVICE_AUTH:-1}
-        # Bust the build cache to generate a fresh auth token on each build
-        NEMOCLAW_BUILD_ID: ${NEMOCLAW_BUILD_ID:-dokploy}
+        # Change this value to force a fresh image build and rotate the auth token
+        NEMOCLAW_BUILD_ID: ${NEMOCLAW_BUILD_ID:-dokploy-1}
 
-    # Pass the NVIDIA API key at runtime so it works without rebuilding the image.
-    # The nemoclaw-start entrypoint writes it to the agent auth-profiles at startup.
     environment:
       NVIDIA_API_KEY: ${NVIDIA_API_KEY}
-      CHAT_UI_URL: ${CHAT_UI_URL:-https://nemoclaw.yourdomain.com}
+      CHAT_UI_URL: ${CHAT_UI_URL:-http://localhost:18789}
 
-    # Persist agent workspace, identity, memory, and devices across restarts.
+    # Persist agent workspace, identity, memory, and devices across restarts
     volumes:
       - nemoclaw-data:/sandbox/.openclaw-data
 
-    # The OpenClaw gateway serves the Web UI on this port.
-    # Traefik picks it up via the labels below — no need to expose it directly.
-    expose:
-      - "18789"
+    # OpenClaw gateway serves the Web UI on port 18789.
+    # Dokploy/Traefik routes traffic here via the domain configured in the UI.
+    ports:
+      - "18789:18789"
 
     restart: unless-stopped
 
-    # ── Traefik routing labels ──────────────────────────────────────────────
-    # Dokploy manages Traefik automatically. These labels tell Traefik how to
-    # route HTTPS traffic to the OpenClaw gateway.
-    #
-    # IMPORTANT: Replace "nemoclaw.yourdomain.com" everywhere below with your
-    # actual domain (the same value as CHAT_UI_URL without the https:// prefix).
-    labels:
-      - "traefik.enable=true"
-
-      # HTTP router — redirect all HTTP to HTTPS
-      - "traefik.http.routers.nemoclaw-http.rule=Host(`nemoclaw.yourdomain.com`)"
-      - "traefik.http.routers.nemoclaw-http.entrypoints=web"
-      - "traefik.http.routers.nemoclaw-http.middlewares=redirect-to-https"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
-
-      # HTTPS router — terminate TLS and proxy to the gateway
-      - "traefik.http.routers.nemoclaw.rule=Host(`nemoclaw.yourdomain.com`)"
-      - "traefik.http.routers.nemoclaw.entrypoints=websecure"
-      - "traefik.http.routers.nemoclaw.tls=true"
-      - "traefik.http.routers.nemoclaw.tls.certresolver=letsencrypt"
-
-      # Tell Traefik which container port to forward to
-      - "traefik.http.services.nemoclaw.loadbalancer.server.port=18789"
-
-    # Connect to Dokploy's shared Traefik network
     networks:
       - dokploy-network
 
@@ -91,3 +51,4 @@ volumes:
 networks:
   dokploy-network:
     external: true
+
