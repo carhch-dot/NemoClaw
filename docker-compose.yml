@@ -35,8 +35,9 @@ services:
       - nemoclaw-data:/sandbox/.openclaw-data
 
     # OpenClaw gateway serves the Web UI on port 18789.
-    expose:
-      - "18789"
+    # Exposing the port so you can access it directly via IP:18789 as a fallback.
+    ports:
+      - "18789:18789"
 
     restart: unless-stopped
 
@@ -46,10 +47,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.nemoclaw.rule=Host(`${CHAT_UI_DOMAIN}`)"
       - "traefik.http.services.nemoclaw.loadbalancer.server.port=18789"
-      # Optional HTTPS configs if Let's Encrypt is enabled on the domain
-      - "traefik.http.routers.nemoclaw.entrypoints=web,websecure"
-      - "traefik.http.routers.nemoclaw.tls=true"
-      - "traefik.http.routers.nemoclaw.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.nemoclaw.entrypoints=web"
 
     networks:
       - dokploy-network
