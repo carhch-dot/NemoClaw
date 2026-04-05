@@ -38,7 +38,7 @@ Open `http://<your-vps-ip>:3000` in your browser and complete the initial setup 
 1. Click **Create Project** → give it a name (e.g. `nemoclaw`)
 2. Inside the project, click **Create Service → Docker Compose**
 3. Select **GitHub** as the source and choose the **NemoClaw** repository
-4. Set the **Docker Compose file path** to: `docker-compose.dokploy.yml`
+4. Set the **Docker Compose file path** to: `docker-compose.yml`
 5. Set the **branch** to `main`
 
 ---
@@ -58,14 +58,14 @@ In the service → **Environment** tab, add:
 
 ---
 
-## Step 5 — Update the Domain in `docker-compose.dokploy.yml`
+## Step 5 — Update the Domain in `docker-compose.yml`
 
-Edit `docker-compose.dokploy.yml` and replace **all occurrences** of `nemoclaw.yourdomain.com` with your actual domain:
+Edit `docker-compose.yml` and replace **all occurrences** of `nemoclaw.yourdomain.com` with your actual domain:
 
 ```bash
 # On your local machine:
-sed -i 's/nemoclaw.yourdomain.com/nemoclaw.YOURACTUALDOMAIN.com/g' docker-compose.dokploy.yml
-git add docker-compose.dokploy.yml
+sed -i 's/nemoclaw.yourdomain.com/nemoclaw.YOURACTUALDOMAIN.com/g' docker-compose.yml
+git add docker-compose.yml
 git commit -m "chore: set production domain for Dokploy"
 git push
 ```
