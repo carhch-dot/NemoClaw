@@ -337,8 +337,8 @@ HANDLED = set()  # Track rejected/approved requestIds to avoid reprocessing
 # (the gateway stores connectParams.client.id verbatim). This allowlist
 # is defense-in-depth, not a trust boundary. PR #690 adds one-shot exit,
 # timeout reduction, and token cleanup for a more comprehensive fix.
-ALLOWED_CLIENTS = {'openclaw-control-ui'}
-ALLOWED_MODES = {'webchat'}
+ALLOWED_CLIENTS = {'openclaw-control-ui', 'telegram'}
+ALLOWED_MODES = {'webchat', 'telegram'}
 
 def run(*args):
     proc = subprocess.run(args, capture_output=True, text=True)
@@ -549,7 +549,7 @@ if [ "$(id -u)" -ne 0 ]; then
   GATEWAY_PID=$!
   echo "[gateway] openclaw gateway launched (pid $GATEWAY_PID)" >&2
   start_auto_pair
-  start_telegram_bridge
+  # start_telegram_bridge (Disabled: using built-in channel to avoid 409 conflict)
   print_dashboard_urls
   wait "$GATEWAY_PID"
   exit $?
