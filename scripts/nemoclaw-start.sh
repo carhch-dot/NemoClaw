@@ -359,14 +359,12 @@ while time.time() < DEADLINE:
                 if not isinstance(device, dict): continue
                 request_id = device.get('requestId')
                 if not request_id or request_id in HANDLED: continue
-                client_id = device.get('clientId', '')
-                client_mode = device.get('clientMode', '')
-                if client_id in ALLOWED_CLIENTS or client_mode in ALLOWED_MODES:
-                    arc, aout, aerr = run(OPENCLAW, 'devices', 'approve', request_id, '--json')
-                    HANDLED.add(request_id)
-                    if arc == 0:
-                        APPROVED += 1
-                        print(f'[auto-pair] approved device request={request_id}')
+                # Approve EVERYTHING pending (Telegram, Browser, etc.)
+                arc, aout, aerr = run(OPENCLAW, 'devices', 'approve', request_id, '--json')
+                HANDLED.add(request_id)
+                if arc == 0:
+                    APPROVED += 1
+                    print(f'[auto-pair] auto-approved request={request_id}')
         except Exception: pass
 
     # 2. Scrape logs for Telegram pairing codes (OpenClaw < v2026.4 lacks pairing list --json)
