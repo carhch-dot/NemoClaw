@@ -30,6 +30,10 @@ services:
       NVIDIA_API_KEY: ${NVIDIA_API_KEY}
       CHAT_UI_URL: ${CHAT_UI_URL:-http://localhost:18789}
 
+    # Override the default CMD ("/bin/bash") which exits immediately in background.
+    # The entrypoint script strips this word, allowing the gateway daemon to start.
+    command: ["nemoclaw-start"]
+
     # Persist agent workspace, identity, memory, and devices across restarts
     volumes:
       - nemoclaw-data:/sandbox/.openclaw-data
