@@ -334,10 +334,10 @@ start_telegram_bridge() {
   
   if [ "$(id -u)" -eq 0 ]; then
     # Root mode: run as sandbox user
-    nohup gosu sandbox bash -c "exec node /opt/nemoclaw/scripts/telegram-bridge.js" >>/tmp/telegram-bridge.log 2>&1 &
+    nohup gosu sandbox bash -c "exec node /opt/nemoclaw/scripts/telegram-bridge.cjs" >>/tmp/telegram-bridge.log 2>&1 &
   else
     # Non-root mode: run as current user
-    nohup node /opt/nemoclaw/scripts/telegram-bridge.js >>/tmp/telegram-bridge.log 2>&1 &
+    nohup node /opt/nemoclaw/scripts/telegram-bridge.cjs >>/tmp/telegram-bridge.log 2>&1 &
   fi
   echo "[services] Telegram bridge started (pid $!)" >&2
 }
@@ -420,7 +420,7 @@ fi
 
 # ── Main ─────────────────────────────────────────────────────────
 
-echo 'Setting up NemoClaw (v6)...' >&2
+echo 'Setting up NemoClaw (v7)...' >&2
 patch_runtime_config
 [ -f .env ] && chmod 600 .env
 
