@@ -130,9 +130,6 @@ config = { \
         'trustedProxies': ['127.0.0.1', '::1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'], \
         'auth': {'token': gateway_token} \
     }, \
-    'plugins': { \
-        'include': ['/sandbox/.openclaw/plugins/nemoclaw'] \
-    }, \
     'channels': { \
         'telegram': {'enabled': True} \
     } \
@@ -157,7 +154,7 @@ os.chmod(path, 0o600)"
 
 # Install NemoClaw plugin into OpenClaw (from its dedicated subdirectory)
 RUN openclaw doctor --fix > /dev/null 2>&1 || true \
-    && openclaw plugins install /opt/nemoclaw/nemoclaw > /dev/null 2>&1 || true
+    && openclaw plugins install --enable /opt/nemoclaw/nemoclaw > /dev/null 2>&1 || true
 
 # Lock openclaw.json via DAC: chown to root so the sandbox user cannot modify
 # it at runtime.  This works regardless of Landlock enforcement status.
