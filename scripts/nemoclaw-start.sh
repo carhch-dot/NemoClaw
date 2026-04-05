@@ -38,30 +38,33 @@ fi
 # into commands executed by the entrypoint or auto-pair watcher.
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
-# ── Drop unnecessary Linux capabilities ──────────────────────────
-# CIS Docker Benchmark 5.3: containers should not run with default caps.
-# OpenShell manages the container runtime so we cannot pass --cap-drop=ALL
-# to docker run. Instead, drop dangerous capabilities from the bounding set
-# at startup using capsh. The bounding set limits what caps any child process
-# (gateway, sandbox, agent) can ever acquire.
-#
-# Kept: cap_chown, cap_setuid, cap_setgid, cap_fowner, cap_kill
-#   — required by the entrypoint for gosu privilege separation and chown.
-# Ref: https://github.com/NVIDIA/NemoClaw/issues/797
-if [ "${NEMOCLAW_CAPS_DROPPED:-}" != "1" ] && command -v capsh >/dev/null 2>&1; then
-  # capsh --drop requires CAP_SETPCAP in the bounding set. OpenShell's
-  # sandbox runtime may strip it, so check before attempting the drop.
-  if capsh --has-p=cap_setpcap 2>/dev/null; then
-    export NEMOCLAW_CAPS_DROPPED=1
-    exec capsh \
-      --drop=cap_net_raw,cap_dac_override,cap_sys_chroot,cap_fsetid,cap_setfcap,cap_mknod,cap_audit_write,cap_net_bind_service \
-      -- -c 'exec /usr/local/bin/nemoclaw-start "$@"' -- "$@"
-  else
-    echo "[SECURITY] CAP_SETPCAP not available — runtime already restricts capabilities" >&2
-  fi
-elif [ "${NEMOCLAW_CAPS_DROPPED:-}" != "1" ]; then
-  echo "[SECURITY WARNING] capsh not available — running with default capabilities" >&2
+# ── Privileged setup: Volumes and Users ──────────────────────────
+# Perform all operations that require CAP_DAC_OVERRIDE/privileged access
+# BEFORE dropping capabilities or re-execing via capsh.
+if [ "${NEMOCLAW_CAPS_DROPPED:-}" != "1" ]; then
+  echo "Setting up NemoClaw (privileged setup)..." >&2
+  
+  # Ensure state directories exist on volume
+  mkdir -p /sandbox/.openclaw-data/logs /sandbox/.openclaw-data/cron /sandbox/.openclaw-data/devices
+  touch /sandbox/.openclaw-data/gateway.pid
+  
+  # Shared group membership
+  usermod -aG gateway sandbox || true
+  usermod -aG sandbox gateway || true
+  
+  # Ensure correct ownership of the writable state
+  # Docker volume mounts often default to root:root; we need gateway:gateway
+  chown -R gateway:gateway /sandbox/.openclaw-data
+  chmod -R 775 /sandbox/.openclaw-data
+
+  # Setup symlinks in .openclaw (which is owned by root)
+  # Even if .openclaw is hardened, we do this here while we are full root.
+  ln -sf /sandbox/.openclaw-data/gateway.pid /sandbox/.openclaw/gateway.pid
+  ln -sf /sandbox/.openclaw-data/logs /sandbox/.openclaw/logs
+  ln -sf /sandbox/.openclaw-data/devices /sandbox/.openclaw/devices
 fi
+
+# ── Drop unnecessary Linux capabilities ──────────────────────────
 
 # Normalize the sandbox-create bootstrap wrapper. Onboard launches the
 # container as `env CHAT_UI_URL=... nemoclaw-start`, but this script is already
