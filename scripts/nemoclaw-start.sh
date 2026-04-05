@@ -42,10 +42,38 @@ export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 # Perform all operations that require CAP_DAC_OVERRIDE/privileged access
 # BEFORE dropping capabilities or re-execing via capsh.
 if [ "${NEMOCLAW_CAPS_DROPPED:-}" != "1" ]; then
+  echo "--- DEEP DIAGNOSTICS START ---" >&2
+  echo "UID: $(id -u), GID: $(id -g), GROUPS: $(id -G)" >&2
+  echo "CAPS: $(command -v capsh >/dev/null 2>&1 && capsh --print | grep Current || echo 'capsh not found')" >&2
+  echo "MOUNT: $(mount | grep /sandbox || echo '/sandbox not found in mount')" >&2
+  echo "LS -LD /sandbox: $(ls -ld /sandbox 2>&1)" >&2
+  echo "LS -LD /sandbox/.openclaw-data: $(ls -ld /sandbox/.openclaw-data 2>&1)" >&2
+  if command -v lsattr >/dev/null 2>&1; then
+    echo "LSATTR /sandbox: $(lsattr -d /sandbox 2>&1)" >&2
+    echo "LSATTR /sandbox/.openclaw-data: $(lsattr -d /sandbox/.openclaw-data 2>&1)" >&2
+  fi
+  echo "--- DEEP DIAGNOSTICS END ---" >&2
+
   echo "Setting up NemoClaw (privileged setup)..." >&2
   
+  # FORCE REMEDIATION: Force remount RW if somehow RO
+  mount -o remount,rw /sandbox 2>/dev/null || true
+  mount -o remount,rw /sandbox/.openclaw-data 2>/dev/null || true
+
+  # FORCE REMEDIATION: Clear immutable/append-only bits if present
+  if command -v chattr >/dev/null 2>&1; then
+    chattr -i -a /sandbox /sandbox/.openclaw-data /sandbox/.openclaw /sandbox/.openclaw-data/* 2>/dev/null || true
+  fi
+
   # Ensure state directories exist on volume
-  mkdir -p /sandbox/.openclaw-data/logs /sandbox/.openclaw-data/cron /sandbox/.openclaw-data/devices
+  # Using explicit error check for mkdir
+  if ! mkdir -p /sandbox/.openclaw-data/logs /sandbox/.openclaw-data/cron /sandbox/.openclaw-data/devices; then
+    echo "CRITICAL ERROR: mkdir failed even as root. Checking for file collision..." >&2
+    [ -f /sandbox/.openclaw-data ] && echo "ERROR: /sandbox/.openclaw-data is a FILE, not a directory!" >&2
+    [ -f /sandbox/.openclaw-data/logs ] && echo "ERROR: /sandbox/.openclaw-data/logs is a FILE, not a directory!" >&2
+    exit 1
+  fi
+  
   touch /sandbox/.openclaw-data/gateway.pid
   
   # Shared group membership
@@ -53,18 +81,32 @@ if [ "${NEMOCLAW_CAPS_DROPPED:-}" != "1" ]; then
   usermod -aG sandbox gateway || true
   
   # Ensure correct ownership of the writable state
-  # Docker volume mounts often default to root:root; we need gateway:gateway
   chown -R gateway:gateway /sandbox/.openclaw-data
   chmod -R 775 /sandbox/.openclaw-data
 
   # Setup symlinks in .openclaw (which is owned by root)
-  # Even if .openclaw is hardened, we do this here while we are full root.
   ln -sf /sandbox/.openclaw-data/gateway.pid /sandbox/.openclaw/gateway.pid
   ln -sf /sandbox/.openclaw-data/logs /sandbox/.openclaw/logs
   ln -sf /sandbox/.openclaw-data/devices /sandbox/.openclaw/devices
 fi
 
 # ── Drop unnecessary Linux capabilities ──────────────────────────
+# CIS Docker Benchmark 5.3: containers should not run with default caps.
+# Kept: cap_chown, cap_setuid, cap_setgid, cap_fowner, cap_kill
+#   — required by the entrypoint for gosu privilege separation and chown.
+if [ "${NEMOCLAW_CAPS_DROPPED:-}" != "1" ] && command -v capsh >/dev/null 2>&1; then
+  if capsh --has-p=cap_setpcap 2>/dev/null; then
+    export NEMOCLAW_CAPS_DROPPED=1
+    exec capsh \
+      --drop=cap_net_raw,cap_dac_override,cap_sys_chroot,cap_fsetid,cap_setfcap,cap_mknod,cap_audit_write,cap_net_bind_service \
+      -- -c 'exec /usr/local/bin/nemoclaw-start "$@"' -- "$@"
+  else
+    echo "[SECURITY] CAP_SETPCAP not available — runtime already restricts capabilities" >&2
+  fi
+elif [ "${NEMOCLAW_CAPS_DROPPED:-}" != "1" ]; then
+  echo "[SECURITY WARNING] capsh not available — running with default capabilities" >&2
+fi
+
 
 # Normalize the sandbox-create bootstrap wrapper. Onboard launches the
 # container as `env CHAT_UI_URL=... nemoclaw-start`, but this script is already
@@ -454,6 +496,10 @@ if command -v chattr >/dev/null 2>&1; then
   chattr -i /sandbox/.openclaw/openclaw.json 2>/dev/null || true
   chattr -i /sandbox/.openclaw/devices 2>/dev/null || true
 fi
+
+# ── Runtime preparation ──────────────────────────────────────────
+verify_config_integrity || exit 1
+patch_runtime_config
 
 # Proactively fix .openclaw permissions/symlinks for gateway user (UID 1001)
 # Specifically the 'devices' directory which needs to be writable for pairing.
