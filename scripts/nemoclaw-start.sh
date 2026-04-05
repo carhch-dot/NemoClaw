@@ -89,6 +89,11 @@ if [ "${NEMOCLAW_CAPS_DROPPED:-}" != "1" ]; then
   ln -sf /sandbox/.openclaw-data/gateway.pid /sandbox/.openclaw/gateway.pid
   ln -sf /sandbox/.openclaw-data/logs /sandbox/.openclaw/logs
   ln -sf /sandbox/.openclaw-data/devices /sandbox/.openclaw/devices
+
+  # Granular permissions for .openclaw (gateway user needs to write temporarily for doctor fixes)
+  chown -R root:gateway /sandbox/.openclaw
+  chmod -R 775 /sandbox/.openclaw
+  chmod 664 /sandbox/.openclaw/openclaw.json /sandbox/.openclaw/.config-hash 2>/dev/null || true
 fi
 
 # ── Drop unnecessary Linux capabilities ──────────────────────────
@@ -317,7 +322,7 @@ start_auto_pair() {
   else
     run_prefix=(bash -c "exec python3 - >>/tmp/auto-pair.log 2>&1")
   fi
-  OPENCLAW_BIN="$OPENCLAW" nohup "${run_prefix[@]}" >/dev/null 2>&1 <<'PYAUTOPAIR' &
+  OPENCLAW_BIN="$OPENCLAW" OPENCLAW_HOME=/sandbox nohup "${run_prefix[@]}" >/dev/null 2>&1 <<'PYAUTOPAIR' &
 import json
 import os
 import subprocess
