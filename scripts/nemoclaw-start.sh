@@ -204,6 +204,7 @@ disable_device_auth = os.environ.get('NEMOCLAW_DISABLE_DEVICE_AUTH', '') == '1'
 gateway_token = os.environ.get('NEMOCLAW_GATEWAY_TOKEN', '')
 
 # 1. Patch Gateway Connectivity
+parsed = urlparse(url)
 config.setdefault('gateway', {})
 config['gateway']['mode'] = 'standalone'
 config.setdefault('gateway', {}).setdefault('controlUi', {})
