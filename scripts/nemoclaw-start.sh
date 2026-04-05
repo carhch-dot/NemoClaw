@@ -427,16 +427,22 @@ start_telegram_bridge() {
 # NEMOCLAW_PROXY_HOST / NEMOCLAW_PROXY_PORT can be overridden at sandbox
 # creation time if the gateway IP or port changes in a future OpenShell release.
 # Ref: https://github.com/NVIDIA/NemoClaw/issues/626
-PROXY_HOST="${NEMOCLAW_PROXY_HOST:-10.200.0.1}"
-PROXY_PORT="${NEMOCLAW_PROXY_PORT:-3128}"
-_PROXY_URL="http://${PROXY_HOST}:${PROXY_PORT}"
-_NO_PROXY_VAL="localhost,127.0.0.1,::1,${PROXY_HOST}"
-export HTTP_PROXY="$_PROXY_URL"
-export HTTPS_PROXY="$_PROXY_URL"
-export NO_PROXY="$_NO_PROXY_VAL"
-export http_proxy="$_PROXY_URL"
-export https_proxy="$_PROXY_URL"
-export no_proxy="$_NO_PROXY_VAL"
+# ── Proxy environment ────────────────────────────────────────────
+# Only set proxy if NEMOCLAW_PROXY_HOST is explicitly provided.
+# In standalone mode (e.g. Dokploy), defaulting to 10.200.0.1 causes timeouts.
+if [ -n "${NEMOCLAW_PROXY_HOST:-}" ]; then
+  PROXY_HOST="${NEMOCLAW_PROXY_HOST}"
+  PROXY_PORT="${NEMOCLAW_PROXY_PORT:-3128}"
+  _PROXY_URL="http://${PROXY_HOST}:${PROXY_PORT}"
+  _NO_PROXY_VAL="localhost,127.0.0.1,::1,${PROXY_HOST}"
+  export HTTP_PROXY="$_PROXY_URL"
+  export HTTPS_PROXY="$_PROXY_URL"
+  export NO_PROXY="$_NO_PROXY_VAL"
+  export http_proxy="$_PROXY_URL"
+  export https_proxy="$_PROXY_URL"
+  export no_proxy="$_NO_PROXY_VAL"
+  echo "[services] Proxy configured via ${PROXY_HOST}:${PROXY_PORT}" >&2
+fi
 
 # OpenShell re-injects narrow NO_PROXY/no_proxy=127.0.0.1,localhost,::1 every
 # time a user connects via `openshell sandbox connect`.  The connect path spawns
