@@ -363,7 +363,7 @@ if [ "$(id -u)" -ne 0 ]; then
   chmod 600 /tmp/auto-pair.log
 
   # Start gateway in background, auto-pair, then wait
-  nohup "$OPENCLAW" gateway run >/tmp/gateway.log 2>&1 &
+  nohup "$OPENCLAW" gateway run --bind lan >/tmp/gateway.log 2>&1 &
   GATEWAY_PID=$!
   echo "[gateway] openclaw gateway launched (pid $GATEWAY_PID)" >&2
   start_auto_pair
@@ -425,7 +425,7 @@ fi
 # SECURITY: The sandbox user cannot kill this process because it runs
 # under a different UID. The fake-HOME attack no longer works because
 # the agent cannot restart the gateway with a tampered config.
-nohup gosu gateway bash -c "exec \"$OPENCLAW\" gateway run >/tmp/gateway.log 2>&1" >/dev/null 2>&1 &
+nohup gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind lan >/tmp/gateway.log 2>&1" >/dev/null 2>&1 &
 GATEWAY_PID=$!
 echo "[gateway] openclaw gateway launched as 'gateway' user (pid $GATEWAY_PID)" >&2
 
