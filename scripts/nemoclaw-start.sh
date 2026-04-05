@@ -418,7 +418,7 @@ if [ -w "$_SANDBOX_HOME" ]; then
   _write_proxy_snippet "${_SANDBOX_HOME}/.profile"
 fi
 
-echo 'Setting up NemoClaw (v14)...' >&2
+echo 'Setting up NemoClaw (v15)...' >&2
 
 # Forcibly unlock .openclaw immediately to avoid any Permission denied errors
 if command -v chattr >/dev/null 2>&1; then
@@ -444,6 +444,10 @@ if [ "$(id -u)" -eq 0 ]; then
 
   # Bridge dependency fix: symlink dist folder to where bin/lib expects it
   [ -d /opt/nemoclaw/nemoclaw/dist ] && ln -sf /opt/nemoclaw/nemoclaw/dist /opt/nemoclaw/dist
+
+  # Auto-fix config based on latest doctor checks (e.g. enabling Telegram)
+  echo "[services] Running openclaw doctor --fix..." >&2
+  "$OPENCLAW" doctor --fix >/dev/null 2>&1 || true
 fi
 echo "[services] Patching runtime configuration..." >&2
 patch_runtime_config
@@ -538,7 +542,7 @@ fi
 
 # Start the gateway as the 'gateway' user.
 # Pipe to stdout so crash reasons are visible in Dokploy logs.
-gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind all" &
+gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind lan" &
 GATEWAY_PID=$!
 echo "[gateway] openclaw gateway launched as 'gateway' user (pid $GATEWAY_PID)" >&2
 

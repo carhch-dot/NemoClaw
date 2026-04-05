@@ -1,5 +1,5 @@
 # NemoClaw sandbox image — OpenClaw + NemoClaw plugin inside OpenShell
-# Cache-bust: 2026-04-05_0516
+# Cache-bust: 2026-04-05_0521
 #
 # Layers PR-specific code (plugin, blueprint, config, startup script) on top
 # of the pre-built base image from GHCR. The base image contains all the
