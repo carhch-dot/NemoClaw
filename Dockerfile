@@ -122,11 +122,11 @@ config = { \
     'agents': {'defaults': {'model': {'primary': primary_model_ref}}}, \
     'models': {'mode': 'merge', 'providers': providers}, \
     'gateway': { \
-        'mode': 'local', \
+        'mode': 'standalone', \
         'controlUi': { \
             'allowInsecureAuth': allow_insecure, \
             'dangerouslyDisableDeviceAuth': disable_device_auth, \
-            'allowedOrigins': origins, \
+            'allowedOrigins': ['*'], \
         }, \
         'trustedProxies': ['127.0.0.1', '::1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'], \
         'auth': {'token': gateway_token} \

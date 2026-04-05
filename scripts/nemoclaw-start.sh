@@ -203,26 +203,16 @@ url = os.environ.get('CHAT_UI_URL', '')
 disable_device_auth = os.environ.get('NEMOCLAW_DISABLE_DEVICE_AUTH', '') == '1'
 gateway_token = os.environ.get('NEMOCLAW_GATEWAY_TOKEN', '')
 
-# 1. Patch Allowed Origins
-if url:
-    parsed = urlparse(url)
-    origin = f'{parsed.scheme}://{parsed.netloc}' if parsed.scheme and parsed.netloc else 'http://127.0.0.1:18789'
-    origins = config.get('gateway', {}).get('controlUi', {}).get('allowedOrigins', [])
-    if origin not in origins:
-        print(f'[gateway] dynamic-config: adding origin {origin}')
-        origins.append(origin)
-        config.setdefault('gateway', {}).setdefault('controlUi', {})['allowedOrigins'] = list(dict.fromkeys(origins))
-    if parsed.scheme == 'http':
-        config.setdefault('gateway', {}).setdefault('controlUi', {})['allowInsecureAuth'] = True
-    modified = True
-
-# 2. Patch Device Auth
+# 1. Patch Gateway Connectivity
+config.setdefault('gateway', {})
+config['gateway']['mode'] = 'standalone'
+config.setdefault('gateway', {}).setdefault('controlUi', {})
+config['gateway']['controlUi']['allowedOrigins'] = ['*']
+if parsed.scheme == 'http':
+    config['gateway']['controlUi']['allowInsecureAuth'] = True
 if disable_device_auth:
-    current = config.get('gateway', {}).get('controlUi', {}).get('dangerouslyDisableDeviceAuth', False)
-    if not current:
-        print(f'[gateway] dynamic-config: disabling device auth (headless mode)')
-        config.setdefault('gateway', {}).setdefault('controlUi', {})['dangerouslyDisableDeviceAuth'] = True
-        modified = True
+    config['gateway']['controlUi']['dangerouslyDisableDeviceAuth'] = True
+modified = True
 
 # 3. Patch Gateway Token
 if gateway_token:
@@ -624,6 +614,9 @@ echo "[gateway] openclaw gateway launched as 'gateway' user (pid $GATEWAY_PID)" 
 start_auto_pair
 # start_telegram_bridge (Disabled: using built-in channel to avoid 409 conflict)
 print_dashboard_urls
+
+# Periodic status dump to logs to help user see pairings
+(while true; do sleep 30; gosu gateway "$OPENCLAW" devices list --json 2>/dev/null | grep -o '"id":"[^"]*"' | tee /tmp/device-status.log; done) &
 
 # Keep container running by waiting on the gateway process.
 # This script is PID 1 (ENTRYPOINT); if it exits, Docker kills all children.
