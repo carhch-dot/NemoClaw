@@ -115,6 +115,61 @@ verify_config_integrity() {
   fi
 }
 
+patch_allowed_origins() {
+  if [ -z "${CHAT_UI_URL:-}" ]; then
+    return
+  fi
+
+  # Temporarily drop immutable flag to allow patching
+  if [ "$(id -u)" -eq 0 ] && command -v chattr >/dev/null 2>&1; then
+    chattr -i /sandbox/.openclaw /sandbox/.openclaw/openclaw.json /sandbox/.openclaw/.config-hash 2>/dev/null || true
+  fi
+
+  python3 - <<'PYCORS'
+import json, os, hashlib
+from urllib.parse import urlparse
+
+url = os.environ.get('CHAT_UI_URL', '')
+if not url:
+    exit(0)
+
+parsed = urlparse(url)
+origin = f'{parsed.scheme}://{parsed.netloc}' if parsed.scheme and parsed.netloc else 'http://127.0.0.1:18789'
+
+path = '/sandbox/.openclaw/openclaw.json'
+hash_file = '/sandbox/.openclaw/.config-hash'
+
+try:
+    with open(path, 'r') as f:
+        config = json.load(f)
+except Exception:
+    exit(0)
+
+origins = config.get('gateway', {}).get('controlUi', {}).get('allowedOrigins', [])
+if origin not in origins:
+    print(f'[gateway] dynamic-cors: adding origin {origin}')
+    origins.append(origin)
+    config['gateway']['controlUi']['allowedOrigins'] = list(dict.fromkeys(origins))
+    
+    # Must be root to chmod/write if it was locked.
+    # The entrypoint runs as root initially.
+    try:
+        os.chmod(path, 0o600)
+        with open(path, 'w') as f:
+            json.dump(config, f, indent=2)
+        os.chmod(path, 0o444)
+        
+        # Recalculate hash
+        with open(path, 'rb') as f:
+            new_hash = hashlib.sha256(f.read()).hexdigest()
+        with open(hash_file, 'w') as f:
+            f.write(f'{new_hash}  /sandbox/.openclaw/openclaw.json\n')
+        os.chmod(hash_file, 0o444)
+    except Exception as e:
+        print(f'[gateway] dynamic-cors error: {e}')
+PYCORS
+}
+
 write_auth_profile() {
   if [ -z "${NVIDIA_API_KEY:-}" ]; then
     return
@@ -333,6 +388,7 @@ fi
 # ── Main ─────────────────────────────────────────────────────────
 
 echo 'Setting up NemoClaw...' >&2
+patch_allowed_origins
 [ -f .env ] && chmod 600 .env
 
 # ── Non-root fallback ──────────────────────────────────────────
