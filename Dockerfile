@@ -134,7 +134,6 @@ config = { \
     'channels': { \
         'telegram': { \
             'enabled': bool(tg_token), \
-            'token': tg_token, \
             'allowFrom': ['*'], \
             'groupPolicy': 'open' \
         } \
