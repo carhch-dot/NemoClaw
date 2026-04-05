@@ -50,29 +50,16 @@ In the service → **Environment** tab, add:
 | Variable | Value |
 |----------|-------|
 | `NVIDIA_API_KEY` | Your NVIDIA API key |
-| `CHAT_UI_URL` | `https://nemoclaw.yourdomain.com` |
+| `CHAT_UI_DOMAIN` | `nemoclaw-nemoclaw-dyj9qo-b16fec-187-124-155-228.traefik.me` (or your custom domain) |
+| `CHAT_UI_URL` | `http://${CHAT_UI_DOMAIN}` (use `https://` if you enabled Let's Encrypt) |
 | `NEMOCLAW_DISABLE_DEVICE_AUTH` | `1` (recommended for cloud — enables auto-pair) |
 | `NEMOCLAW_BUILD_ID` | `dokploy-1` (change to bust cache on rebuild) |
 
-> **Note:** `CHAT_UI_URL` is **also** used as a Docker build arg (for CORS configuration baked into the image). The value you set here will be passed to the build automatically.
+> **Note:** `CHAT_UI_DOMAIN` configures the Traefik router label automatically. `CHAT_UI_URL` is baked into the image for CORS configuration.
 
 ---
 
-## Step 5 — Update the Domain in `docker-compose.yml`
-
-Edit `docker-compose.yml` and replace **all occurrences** of `nemoclaw.yourdomain.com` with your actual domain:
-
-```bash
-# On your local machine:
-sed -i 's/nemoclaw.yourdomain.com/nemoclaw.YOURACTUALDOMAIN.com/g' docker-compose.yml
-git add docker-compose.yml
-git commit -m "chore: set production domain for Dokploy"
-git push
-```
-
----
-
-## Step 6 — Configure the Domain & HTTPS in Dokploy
+## Step 5 — Configure the Domain & HTTPS in Dokploy
 
 1. In Dokploy → your service → **Domains** tab
 2. Add domain: `nemoclaw.yourdomain.com`

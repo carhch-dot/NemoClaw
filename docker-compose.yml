@@ -35,11 +35,21 @@ services:
       - nemoclaw-data:/sandbox/.openclaw-data
 
     # OpenClaw gateway serves the Web UI on port 18789.
-    # Dokploy/Traefik routes traffic here via the domain configured in the UI.
-    ports:
-      - "18789:18789"
+    expose:
+      - "18789"
 
     restart: unless-stopped
+
+    # ── Traefik routing labels ──────────────────────────────────────────────
+    # Dokploy Docker Compose needs explicit Traefik labels to route the domain.
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nemoclaw.rule=Host(`${CHAT_UI_DOMAIN}`)"
+      - "traefik.http.services.nemoclaw.loadbalancer.server.port=18789"
+      # Optional HTTPS configs if Let's Encrypt is enabled on the domain
+      - "traefik.http.routers.nemoclaw.entrypoints=web,websecure"
+      - "traefik.http.routers.nemoclaw.tls=true"
+      - "traefik.http.routers.nemoclaw.tls.certresolver=letsencrypt"
 
     networks:
       - dokploy-network
