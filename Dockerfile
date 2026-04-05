@@ -133,7 +133,7 @@ config = { \
     'channels': { \
         'telegram': { \
             'enabled': True, \
-            'policy': 'open', \
+            'allowFrom': ['*'], \
             'groupPolicy': 'open' \
         } \
     } \

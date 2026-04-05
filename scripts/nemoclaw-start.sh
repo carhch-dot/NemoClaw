@@ -242,9 +242,8 @@ if any(t not in current_trusted for t in trusted):
 
 # 3. Patch Telegram Channel Policy
 config.setdefault('channels', {}).setdefault('telegram', {})
-# Don't overwrite if user has custom settings, but for initial/default, 'open' is required for Bot Father setup
-if not config['channels']['telegram'].get('policy'):
-    config['channels']['telegram']['policy'] = 'open'
+if not config['channels']['telegram'].get('allowFrom'):
+    config['channels']['telegram']['allowFrom'] = ['*']
 if not config['channels']['telegram'].get('groupPolicy'):
     config['channels']['telegram']['groupPolicy'] = 'open'
 config['channels']['telegram']['enabled'] = True
