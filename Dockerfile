@@ -40,6 +40,7 @@ COPY nemoclaw-blueprint/ /opt/nemoclaw-blueprint/
 COPY --from=builder /opt/nemoclaw/dist/ /opt/nemoclaw/dist/
 COPY bin/ /opt/nemoclaw/bin/
 COPY scripts/ /opt/nemoclaw/scripts/
+COPY package.json package-lock.json /opt/nemoclaw/
 
 # Install runtime dependencies only (no devDependencies, no build step)
 WORKDIR /opt/nemoclaw
