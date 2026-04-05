@@ -99,7 +99,9 @@ async function sendTyping(chatId) {
 function runAgentInSandbox(message, sessionId) {
   return new Promise((resolve) => {
     const safeSessionId = String(sessionId).replace(/[^a-zA-Z0-9-]/g, "");
-    const cmd = `export NVIDIA_API_KEY=${shellQuote(API_KEY)} && openclaw agent --agent main --local -m ${shellQuote(message)} --session-id ${shellQuote("tg-" + safeSessionId)}`;
+    const cmd = `export NVIDIA_API_KEY=${shellQuote(API_KEY)} && openclaw agent --agent main --local --raw -m ${shellQuote(message)} --session-id ${shellQuote("tg-" + safeSessionId)}`;
+
+    console.log(`[bridge] executing: ${cmd}`);
 
     let proc;
     let confDir, confPath;
@@ -127,8 +129,16 @@ function runAgentInSandbox(message, sessionId) {
     let stdout = "";
     let stderr = "";
 
-    proc.stdout.on("data", (d) => (stdout += d.toString()));
-    proc.stderr.on("data", (d) => (stderr += d.toString()));
+    proc.stdout.on("data", (d) => {
+      const chunk = d.toString();
+      console.log(`[bridge] stdout: ${chunk}`);
+      stdout += chunk;
+    });
+    proc.stderr.on("data", (d) => {
+      const chunk = d.toString();
+      console.log(`[bridge] stderr: ${chunk.trim()}`);
+      stderr += chunk;
+    });
 
     proc.on("close", (code) => {
       try {
