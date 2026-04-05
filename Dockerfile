@@ -146,7 +146,7 @@ config.update({ \
         } \
     } \
 } if web_config.get('provider') == 'brave' else {}); \
-path = os.path.expanduser('~/.openclaw/openclaw.json'); \
+path = '/sandbox/.openclaw/openclaw.json'; \
 json.dump(config, open(path, 'w'), indent=2); \
 os.chmod(path, 0o600)"
 
