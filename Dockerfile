@@ -30,14 +30,16 @@ RUN (apt-get remove --purge -y gcc gcc-12 g++ g++-12 cpp cpp-12 make \
     && apt-get autoremove --purge -y \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy built plugin and blueprint into the sandbox
-COPY --from=builder /opt/nemoclaw/nemoclaw/dist/ /opt/nemoclaw/dist/
-COPY --from=builder /opt/nemoclaw/dist/ /opt/dist/
+# Copy built plugin into its own subdirectory to avoid dist/ collision with root CLI
+COPY --from=builder /opt/nemoclaw/nemoclaw/dist/ /opt/nemoclaw/nemoclaw/dist/
+COPY nemoclaw/openclaw.plugin.json /opt/nemoclaw/nemoclaw/
+COPY nemoclaw/package.json nemoclaw/package-lock.json /opt/nemoclaw/nemoclaw/
+COPY nemoclaw-blueprint/ /opt/nemoclaw-blueprint/
+
+# Copy built CLI (CommonJS)
+COPY --from=builder /opt/nemoclaw/dist/ /opt/nemoclaw/dist/
 COPY bin/ /opt/nemoclaw/bin/
 COPY scripts/ /opt/nemoclaw/scripts/
-COPY nemoclaw/openclaw.plugin.json /opt/nemoclaw/
-COPY nemoclaw/package.json nemoclaw/package-lock.json /opt/nemoclaw/
-COPY nemoclaw-blueprint/ /opt/nemoclaw-blueprint/
 
 # Install runtime dependencies only (no devDependencies, no build step)
 WORKDIR /opt/nemoclaw
@@ -106,6 +108,7 @@ origins = ['http://127.0.0.1:18789']; \
 origins = list(dict.fromkeys(origins + [chat_origin])); \
 disable_device_auth = os.environ.get('NEMOCLAW_DISABLE_DEVICE_AUTH', '') == '1'; \
 allow_insecure = parsed.scheme == 'http'; \
+gateway_token = os.environ.get('NEMOCLAW_GATEWAY_TOKEN', secrets.token_hex(32)); \
 providers = { \
     provider_key: { \
         'baseUrl': inference_base_url, \
@@ -125,8 +128,8 @@ config = { \
             'dangerouslyDisableDeviceAuth': disable_device_auth, \
             'allowedOrigins': origins, \
         }, \
-        'trustedProxies': ['127.0.0.1', '::1'], \
-        'auth': {'token': secrets.token_hex(32)} \
+        'trustedProxies': ['127.0.0.1', '::1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'], \
+        'auth': {'token': gateway_token} \
     } \
 }; \
 config.update({ \
@@ -147,9 +150,9 @@ path = os.path.expanduser('~/.openclaw/openclaw.json'); \
 json.dump(config, open(path, 'w'), indent=2); \
 os.chmod(path, 0o600)"
 
-# Install NemoClaw plugin into OpenClaw
+# Install NemoClaw plugin into OpenClaw (from its dedicated subdirectory)
 RUN openclaw doctor --fix > /dev/null 2>&1 || true \
-    && openclaw plugins install /opt/nemoclaw > /dev/null 2>&1 || true
+    && openclaw plugins install /opt/nemoclaw/nemoclaw > /dev/null 2>&1 || true
 
 # Lock openclaw.json via DAC: chown to root so the sandbox user cannot modify
 # it at runtime.  This works regardless of Landlock enforcement status.

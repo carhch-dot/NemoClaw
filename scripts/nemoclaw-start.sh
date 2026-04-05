@@ -142,6 +142,9 @@ except Exception:
     exit(0)
 
 modified = False
+url = os.environ.get('CHAT_UI_URL', '')
+disable_device_auth = os.environ.get('NEMOCLAW_DISABLE_DEVICE_AUTH', '') == '1'
+gateway_token = os.environ.get('NEMOCLAW_GATEWAY_TOKEN', '')
 
 # 1. Patch Allowed Origins
 if url:
@@ -161,6 +164,22 @@ if disable_device_auth:
         print(f'[gateway] dynamic-config: disabling device auth (headless mode)')
         config.setdefault('gateway', {}).setdefault('controlUi', {})['dangerouslyDisableDeviceAuth'] = True
         modified = True
+
+# 3. Patch Gateway Token
+if gateway_token:
+    current = config.get('gateway', {}).get('auth', {}).get('token', '')
+    if gateway_token != current:
+        print(f'[gateway] dynamic-config: updating gateway auth token')
+        config.setdefault('gateway', {}).setdefault('auth', {})['token'] = gateway_token
+        modified = True
+
+# 4. Patch Trusted Proxies
+trusted = ['127.0.0.1', '::1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']
+current_trusted = config.get('gateway', {}).get('trustedProxies', [])
+if any(t not in current_trusted for t in trusted):
+    print(f'[gateway] dynamic-config: updating trusted proxies')
+    config.setdefault('gateway', {})['trustedProxies'] = list(dict.fromkeys(current_trusted + trusted))
+    modified = True
 
 if modified:
     try:
@@ -237,7 +256,7 @@ start_auto_pair() {
   # When running as non-root, skip gosu (we're already the sandbox user)
   local run_prefix=()
   if [ "$(id -u)" -eq 0 ]; then
-    run_prefix=(gosu sandbox bash -c "exec python3 - >>/tmp/auto-pair.log 2>&1")
+    run_prefix=(gosu gateway bash -c "exec python3 - >>/tmp/auto-pair.log 2>&1")
   else
     run_prefix=(bash -c "exec python3 - >>/tmp/auto-pair.log 2>&1")
   fi
@@ -442,9 +461,6 @@ if [ "$(id -u)" -eq 0 ]; then
   # Ensure the gateway user can write to the volume target.
   chown -R gateway:gateway /sandbox/.openclaw-data/devices
 
-  # Bridge dependency fix: symlink dist folder to where bin/lib expects it
-  [ -d /opt/nemoclaw/nemoclaw/dist ] && ln -sf /opt/nemoclaw/nemoclaw/dist /opt/nemoclaw/dist
-
   # Auto-fix config based on latest doctor checks (e.g. enabling Telegram)
   echo "[services] Running openclaw doctor --fix..." >&2
   "$OPENCLAW" doctor --fix >/dev/null 2>&1 || true
@@ -509,9 +525,9 @@ touch /tmp/gateway.log
 chown gateway:gateway /tmp/gateway.log
 chmod 600 /tmp/gateway.log
 
-# Separate log for auto-pair so sandbox user can write to it
+# Separate log for auto-pair so gateway user can write to it
 touch /tmp/auto-pair.log
-chown sandbox:sandbox /tmp/auto-pair.log
+chown gateway:gateway /tmp/auto-pair.log
 chmod 600 /tmp/auto-pair.log
 
 # Verify ALL symlinks in .openclaw point to expected .openclaw-data targets.
