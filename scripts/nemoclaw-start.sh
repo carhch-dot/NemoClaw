@@ -418,7 +418,7 @@ if [ -w "$_SANDBOX_HOME" ]; then
   _write_proxy_snippet "${_SANDBOX_HOME}/.profile"
 fi
 
-echo 'Setting up NemoClaw (v12)...' >&2
+echo 'Setting up NemoClaw (v13)...' >&2
 
 # Forcibly unlock .openclaw immediately to avoid any Permission denied errors
 if command -v chattr >/dev/null 2>&1; then
@@ -441,6 +441,9 @@ if [ "$(id -u)" -eq 0 ]; then
   
   # Ensure the gateway user can write to the volume target.
   chown -R gateway:gateway /sandbox/.openclaw-data/devices
+
+  # Bridge dependency fix: symlink dist folder to where bin/lib expects it
+  [ -d /opt/nemoclaw/nemoclaw/dist ] && ln -sf /opt/nemoclaw/nemoclaw/dist /opt/nemoclaw/dist
 fi
 echo "[services] Patching runtime configuration..." >&2
 patch_runtime_config
@@ -537,7 +540,7 @@ fi
 # SECURITY: The sandbox user cannot kill this process because it runs
 # under a different UID. The fake-HOME attack no longer works because
 # the agent cannot restart the gateway with a tampered config.
-nohup gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind lan >/tmp/gateway.log 2>&1" >/dev/null 2>&1 &
+nohup gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind all >/tmp/gateway.log 2>&1" >/dev/null 2>&1 &
 GATEWAY_PID=$!
 echo "[gateway] openclaw gateway launched as 'gateway' user (pid $GATEWAY_PID)" >&2
 
