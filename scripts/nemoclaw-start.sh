@@ -242,11 +242,14 @@ if any(t not in current_trusted for t in trusted):
 
 # 3. Patch Telegram Channel Policy
 config.setdefault('channels', {}).setdefault('telegram', {})
+tg_token = os.environ.get('TELEGRAM_BOT_TOKEN', '')
+if tg_token:
+    config['channels']['telegram']['token'] = tg_token
 if not config['channels']['telegram'].get('allowFrom'):
     config['channels']['telegram']['allowFrom'] = ['*']
 if not config['channels']['telegram'].get('groupPolicy'):
     config['channels']['telegram']['groupPolicy'] = 'open'
-config['channels']['telegram']['enabled'] = True
+config['channels']['telegram']['enabled'] = bool(tg_token)
 modified = True
 
 if modified:
