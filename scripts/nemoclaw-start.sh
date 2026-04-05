@@ -460,11 +460,18 @@ if [ "$(id -u)" -eq 0 ]; then
   
   # Ensure the gateway user can write to the volume targets.
   # They also need to be able to read/write identity and other state.
+  mkdir -p /sandbox/.openclaw-data/logs
+  touch /sandbox/.openclaw-data/gateway.pid
   chown -R gateway:gateway /sandbox/.openclaw-data
+  
   # But the sandbox user (agent) also needs access to some of these.
   # Make it group-writable and add sandbox to gateway group.
   chmod -R 775 /sandbox/.openclaw-data
   usermod -aG gateway sandbox || true
+
+  # Redirect PID and logs to writable location
+  ln -sf /sandbox/.openclaw-data/gateway.pid /sandbox/.openclaw/gateway.pid
+  ln -sf /sandbox/.openclaw-data/logs /sandbox/.openclaw/logs
 
   # Auto-fix config based on latest doctor checks (e.g. enabling Telegram)
   echo "[services] Running openclaw doctor --fix..." >&2
