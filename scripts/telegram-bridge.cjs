@@ -99,7 +99,7 @@ async function sendTyping(chatId) {
 function runAgentInSandbox(message, sessionId) {
   return new Promise((resolve) => {
     const safeSessionId = String(sessionId).replace(/[^a-zA-Z0-9-]/g, "");
-    const cmd = `export NVIDIA_API_KEY=${shellQuote(API_KEY)} && export HOME=/sandbox && export OPENCLAW_HOME=/sandbox/.openclaw && openclaw agent --agent main --local --raw -m ${shellQuote(message)} --session-id ${shellQuote("tg-" + safeSessionId)}`;
+    const cmd = `export NVIDIA_API_KEY=${shellQuote(API_KEY)} && export HOME=/sandbox && export OPENCLAW_HOME=/sandbox/.openclaw && openclaw agent --agent main --local -m ${shellQuote(message)} --session-id ${shellQuote("tg-" + safeSessionId)}`;
 
     console.log(`[bridge] executing: ${cmd}`);
 
