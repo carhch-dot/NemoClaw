@@ -29,13 +29,13 @@ components:
         provider_type: "nvidia"
         provider_name: "nvidia-inference"
         endpoint: "https://integrate.api.nvidia.com/v1"
-        model: "nvidia/nemotron-3-super-120b-a12b"
+        model: "meta/llama-3.1-8b-instruct"
 
       ncp:
         provider_type: "nvidia"
         provider_name: "nvidia-ncp"
         endpoint: ""
-        model: "nvidia/nemotron-3-super-120b-a12b"
+        model: "meta/llama-3.1-8b-instruct"
         credential_env: "NVIDIA_API_KEY"
         dynamic_endpoint: true
 
@@ -43,7 +43,7 @@ components:
         provider_type: "openai"
         provider_name: "nim-local"
         endpoint: "http://nim-service.local:8000/v1"
-        model: "nvidia/nemotron-3-super-120b-a12b"
+        model: "meta/llama-3.1-8b-instruct"
         credential_env: "NIM_API_KEY"
 
       vllm:
