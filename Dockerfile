@@ -11,16 +11,13 @@
 # to all FROM directives. Can be overridden via --build-arg.
 ARG BASE_IMAGE=ghcr.io/nvidia/nemoclaw/sandbox-base:latest
 
-# Stage 1: Build TypeScript plugin and CLI from source
+# Stage 1: Build TypeScript source (plugin and CLI)
 FROM node:22-slim@sha256:4f77a690f2f8946ab16fe1e791a3ac0667ae1c3575c3e4d0d4589e9ed5bfaf3d AS builder
-WORKDIR /opt/nemoclaw-plugin
-COPY nemoclaw/package.json nemoclaw/tsconfig.json ./
-COPY nemoclaw/src/ ./src/
-RUN npm install && npm run build
-
-WORKDIR /opt/nemoclaw-cli
-COPY package.json tsconfig.src.json ./
-COPY src/ ./src/
+WORKDIR /opt/nemoclaw
+COPY . .
+# 1. Build the plugin
+RUN cd nemoclaw && npm install && npm run build
+# 2. Build the CLI
 RUN npm install && npx tsc -p tsconfig.src.json
 
 # Stage 2: Runtime image — pull cached base from GHCR
@@ -33,8 +30,8 @@ RUN (apt-get remove --purge -y gcc gcc-12 g++ g++-12 cpp cpp-12 make \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy built plugin and blueprint into the sandbox
-COPY --from=builder /opt/nemoclaw-plugin/dist/ /opt/nemoclaw/dist/
-COPY --from=builder /opt/nemoclaw-cli/dist/ /opt/dist/
+COPY --from=builder /opt/nemoclaw/nemoclaw/dist/ /opt/nemoclaw/dist/
+COPY --from=builder /opt/nemoclaw/dist/ /opt/dist/
 COPY bin/ /opt/nemoclaw/bin/
 COPY scripts/ /opt/nemoclaw/scripts/
 COPY nemoclaw/openclaw.plugin.json /opt/nemoclaw/
