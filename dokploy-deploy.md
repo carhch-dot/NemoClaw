@@ -53,7 +53,9 @@ In the service → **Environment** tab, add:
 | `CHAT_UI_DOMAIN` | `nemoclaw-nemoclaw-dyj9qo-b16fec-187-124-155-228.traefik.me` (or your custom domain) |
 | `CHAT_UI_URL` | `http://${CHAT_UI_DOMAIN}` (use `https://` if you enabled Let's Encrypt) |
 | `NEMOCLAW_DISABLE_DEVICE_AUTH` | `1` (recommended for cloud — enables auto-pair) |
-| `NEMOCLAW_BUILD_ID` | `dokploy-1` (change to bust cache on rebuild) |
+| `NEMOCLAW_BUILD_ID` | Increment this to force a full image rebuild | `1` |
+| `TELEGRAM_BOT_TOKEN` | Your bot token from [@BotFather](https://t.me/BotFather) | (Required for Telegram) |
+| `ALLOWED_CHAT_IDS` | Comma-separated list of Telegram Chat IDs | (Optional) |
 
 > **Note:** `CHAT_UI_DOMAIN` configures the Traefik router label automatically. `CHAT_UI_URL` is baked into the image for CORS configuration.
 
@@ -80,6 +82,12 @@ Expected output at the end of the logs:
 [gateway] auto-pair watcher launched (pid ...)
 [gateway] Remote UI: https://nemoclaw.yourdomain.com/#token=...
 ```
+### Telegram Integration (Optional)
+
+1. **Create a Bot:** Talk to [@BotFather](https://t.me/BotFather) on Telegram and create a new bot to get a `TELEGRAM_BOT_TOKEN`.
+2. **Find your ID:** Use [@userinfobot](https://t.me/userinfobot) to get your Chat ID.
+3. **Configure Dokploy:** Add these to the **Environment** tab in Dokploy.
+4. **Redeploy:** The container will detect the token and start the bridge automatically.
 
 ---
 

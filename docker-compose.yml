@@ -30,6 +30,8 @@ services:
       NVIDIA_API_KEY: ${NVIDIA_API_KEY}
       CHAT_UI_URL: ${CHAT_UI_URL:-http://localhost:18789}
       HOST: 0.0.0.0
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      ALLOWED_CHAT_IDS: ${ALLOWED_CHAT_IDS:-}
 
     # Override the default CMD ("/bin/bash") which exits immediately in background.
     # The entrypoint script strips this word, allowing the gateway daemon to start.

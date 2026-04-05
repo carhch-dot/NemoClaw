@@ -22,8 +22,9 @@ const { resolveOpenshell } = require("../bin/lib/resolve-openshell");
 const { shellQuote, validateName } = require("../bin/lib/runner");
 const { parseAllowedChatIds, isChatAllowed } = require("../bin/lib/chat-filter");
 
-const OPENSHELL = resolveOpenshell();
-if (!OPENSHELL) {
+const LOCAL_MODE = process.env.TELEGRAM_BRIDGE_LOCAL === "1";
+const OPENSHELL = LOCAL_MODE ? null : resolveOpenshell();
+if (!LOCAL_MODE && !OPENSHELL) {
   console.error("openshell not found on PATH or in common locations");
   process.exit(1);
 }
@@ -97,23 +98,31 @@ async function sendTyping(chatId) {
 
 function runAgentInSandbox(message, sessionId) {
   return new Promise((resolve) => {
-    const sshConfig = execFileSync(OPENSHELL, ["sandbox", "ssh-config", SANDBOX], { encoding: "utf-8" });
-
-    // Write temp ssh config with unpredictable name
-    const confDir = require("fs").mkdtempSync("/tmp/nemoclaw-tg-ssh-");
-    const confPath = `${confDir}/config`;
-    require("fs").writeFileSync(confPath, sshConfig, { mode: 0o600 });
-
-    // Pass message and API key via stdin to avoid shell interpolation.
-    // The remote command reads them from environment/stdin rather than
-    // embedding user content in a shell string.
     const safeSessionId = String(sessionId).replace(/[^a-zA-Z0-9-]/g, "");
-    const cmd = `export NVIDIA_API_KEY=${shellQuote(API_KEY)} && nemoclaw-start openclaw agent --agent main --local -m ${shellQuote(message)} --session-id ${shellQuote("tg-" + safeSessionId)}`;
+    const cmd = `export NVIDIA_API_KEY=${shellQuote(API_KEY)} && openclaw agent --agent main --local -m ${shellQuote(message)} --session-id ${shellQuote("tg-" + safeSessionId)}`;
 
-    const proc = spawn("ssh", ["-T", "-F", confPath, `openshell-${SANDBOX}`, cmd], {
-      timeout: 120000,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    let proc;
+    let confDir, confPath;
+
+    if (LOCAL_MODE) {
+      proc = spawn("bash", ["-c", cmd], {
+        timeout: 120000,
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+    } else {
+      const sshConfig = execFileSync(OPENSHELL, ["sandbox", "ssh-config", SANDBOX], {
+        encoding: "utf-8",
+      });
+      // Write temp ssh config with unpredictable name
+      confDir = require("fs").mkdtempSync("/tmp/nemoclaw-tg-ssh-");
+      confPath = `${confDir}/config`;
+      require("fs").writeFileSync(confPath, sshConfig, { mode: 0o600 });
+
+      proc = spawn("ssh", ["-T", "-F", confPath, `openshell-${SANDBOX}`, cmd], {
+        timeout: 120000,
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+    }
 
     let stdout = "";
     let stderr = "";
@@ -122,7 +131,12 @@ function runAgentInSandbox(message, sessionId) {
     proc.stderr.on("data", (d) => (stderr += d.toString()));
 
     proc.on("close", (code) => {
-      try { require("fs").unlinkSync(confPath); require("fs").rmdirSync(confDir); } catch { /* ignored */ }
+      try {
+        if (confPath) require("fs").unlinkSync(confPath);
+        if (confDir) require("fs").rmdirSync(confDir);
+      } catch {
+        /* ignored */
+      }
 
       // Extract the actual agent response — skip setup lines
       const lines = stdout.split("\n");

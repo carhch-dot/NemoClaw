@@ -433,6 +433,7 @@ if [ "$(id -u)" -ne 0 ]; then
   GATEWAY_PID=$!
   echo "[gateway] openclaw gateway launched (pid $GATEWAY_PID)" >&2
   start_auto_pair
+  start_telegram_bridge
   print_dashboard_urls
   wait "$GATEWAY_PID"
   exit $?
@@ -496,6 +497,7 @@ GATEWAY_PID=$!
 echo "[gateway] openclaw gateway launched as 'gateway' user (pid $GATEWAY_PID)" >&2
 
 start_auto_pair
+start_telegram_bridge
 print_dashboard_urls
 
 # Keep container running by waiting on the gateway process.
