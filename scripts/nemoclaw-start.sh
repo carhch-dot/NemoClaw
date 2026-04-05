@@ -172,9 +172,11 @@ start_auto_pair() {
   # When running as non-root, skip gosu (we're already the sandbox user)
   local run_prefix=()
   if [ "$(id -u)" -eq 0 ]; then
-    run_prefix=(gosu sandbox)
+    run_prefix=(gosu sandbox bash -c "exec python3 - >>/tmp/auto-pair.log 2>&1")
+  else
+    run_prefix=(bash -c "exec python3 - >>/tmp/auto-pair.log 2>&1")
   fi
-  OPENCLAW_BIN="$OPENCLAW" nohup "${run_prefix[@]}" python3 - <<'PYAUTOPAIR' >>/tmp/auto-pair.log 2>&1 &
+  OPENCLAW_BIN="$OPENCLAW" nohup "${run_prefix[@]}" >/dev/null 2>&1 <<'PYAUTOPAIR' &
 import json
 import os
 import subprocess
@@ -423,7 +425,7 @@ fi
 # SECURITY: The sandbox user cannot kill this process because it runs
 # under a different UID. The fake-HOME attack no longer works because
 # the agent cannot restart the gateway with a tampered config.
-nohup gosu gateway "$OPENCLAW" gateway run >/tmp/gateway.log 2>&1 &
+nohup gosu gateway bash -c "exec \"$OPENCLAW\" gateway run >/tmp/gateway.log 2>&1" >/dev/null 2>&1 &
 GATEWAY_PID=$!
 echo "[gateway] openclaw gateway launched as 'gateway' user (pid $GATEWAY_PID)" >&2
 
