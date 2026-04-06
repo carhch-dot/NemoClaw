@@ -172,7 +172,7 @@ const REMOTE_PROVIDER_CONFIG = {
     providerName: "minimax-api",
     providerType: "openai",
     credentialEnv: "MINIMAX_API_KEY",
-    endpointUrl: "https://api.minimax.chat/v1",
+    endpointUrl: "https://api.minimax.io/v1",
     helpUrl: "https://platform.minimaxi.com/",
     modelMode: "input",
     defaultModel: "MiniMax-M2.7",
