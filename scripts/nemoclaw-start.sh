@@ -639,13 +639,18 @@ fi
 
 # Ensure OpenClaw is up-to-date (fixes regressions in 2026.3.11)
 # We use a writable prefix in /tmp to bypass sandbox permission errors
-echo "[gateway] checking for OpenClaw updates..." >&2
+echo "[gateway] upgrading OpenClaw to latest version (this may take a minute)..." >&2
 export NPM_CONFIG_PREFIX=/tmp/npm-global
 export NPM_CONFIG_CACHE=/tmp/.npm
 export PATH="/tmp/npm-global/bin:$PATH"
 mkdir -p /tmp/npm-global /tmp/.npm
-npm install -g openclaw@latest --no-audit --no-fund || true
+if npm install -g openclaw@latest --no-audit --no-fund --quiet --no-progress; then
+  echo "[gateway] OpenClaw upgrade successful." >&2
+else
+  echo "[gateway] OpenClaw upgrade failed or timed out (continuing with existing version)." >&2
+fi
 OPENCLAW="$(command -v openclaw)" || OPENCLAW="/usr/local/bin/openclaw"
+echo "[gateway] using OpenClaw binary at: $OPENCLAW" >&2
 
 # Start the gateway as the 'gateway' user.
 # IMPORTANT: We MUST redirect to /tmp/gateway.log so the auto-pair watcher works.
