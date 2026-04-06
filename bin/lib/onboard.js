@@ -172,7 +172,7 @@ const REMOTE_PROVIDER_CONFIG = {
     providerName: "minimax-api",
     providerType: "anthropic",
     credentialEnv: "MINIMAX_API_KEY",
-    endpointUrl: "https://api.minimax.io/anthropic",
+    endpointUrl: "https://api.minimax.io/anthropic/v1",
     helpUrl: "https://platform.minimaxi.com/",
     modelMode: "input",
     defaultModel: "MiniMax-M2.7",

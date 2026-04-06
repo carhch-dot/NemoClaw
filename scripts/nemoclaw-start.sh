@@ -260,7 +260,7 @@ if 'minimax' in model_ref.lower() and '/' not in model_ref:
         base_url = p_cfg.get('baseUrl', '')
         if 'minimax' in base_url.lower() or 'minimax' in p_id.lower():
             print(f'[gateway] dynamic-config: forcing Anthropic protocol for MiniMax: {base_url}')
-            p_cfg['baseUrl'] = 'https://api.minimax.io/anthropic'
+            p_cfg['baseUrl'] = 'https://api.minimax.io/anthropic/v1'
             p_cfg['api'] = 'anthropic-messages'
             modified = True
             
@@ -636,12 +636,9 @@ fi
 # Gateway log is already set up at the script entrypoint
 
 # Start the gateway as the 'gateway' user.
-# Pipe to both stdout and log file so auto-pair can see codes and Dokploy shows errors.
-EXTRA_ARGS=""
-if [ "$NEMOCLAW_DISABLE_DEVICE_AUTH" = "1" ]; then
-    EXTRA_ARGS="--gateway.controlUi.dangerouslyDisableDeviceAuth=true"
-fi
-gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind lan $EXTRA_ARGS" | tee -a /tmp/gateway.log &
+# Dokploy captures stdout/stderr automatically.
+echo "[gateway] launching openclaw gateway..." >&2
+gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind lan"
 GATEWAY_PID=$!
 echo "[gateway] openclaw gateway launched as 'gateway' user (pid $GATEWAY_PID)" >&2
 
