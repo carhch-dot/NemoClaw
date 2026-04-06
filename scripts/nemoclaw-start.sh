@@ -603,6 +603,10 @@ if command -v chattr >/dev/null 2>&1; then
   done
 fi
 
+echo "[gateway] network diagnostics:" >&2
+ip addr >&2
+netstat -tuln >&2
+
 # Start the gateway as the 'gateway' user.
 # Pipe to both stdout and log file so auto-pair can see codes and Dokploy shows errors.
 gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind lan" | tee -a /tmp/gateway.log &
