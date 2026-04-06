@@ -276,7 +276,11 @@ if ('minimax' in model_ref.lower() or 'gemini' in model_ref.lower()) and '/' not
     config.setdefault('agents', {}).setdefault('defaults', {}).setdefault('model', {})['primary'] = new_ref
     modified = True
 
-# 5. Remove legacy keys that cause validation errors
+# 6. Ensure stable Access Token
+config.setdefault('gateway', {}).setdefault('controlUi', {})['accessToken'] = os.environ.get('NEMOCLAW_ACCESS_TOKEN')
+modified = True
+
+# 7. Remove legacy keys that cause validation errors
 if 'defaults' in config:
     print(f'[gateway] dynamic-config: removing legacy top-level defaults key')
     del config['defaults']
