@@ -111,7 +111,7 @@ disable_device_auth = os.environ.get('NEMOCLAW_DISABLE_DEVICE_AUTH', '') == '1';
 allow_insecure = parsed.scheme == 'http'; \
 gateway_token = os.environ.get('NEMOCLAW_GATEWAY_TOKEN', secrets.token_hex(32)); \
 providers = { \
-    provider_key: { \
+    'inference': { \
         'baseUrl': inference_base_url, \
         'apiKey': 'unused', \
         'api': inference_api, \
