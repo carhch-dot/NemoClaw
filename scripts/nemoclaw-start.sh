@@ -42,6 +42,16 @@ fi
 # into commands executed by the entrypoint or auto-pair watcher.
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 
+# Persistent token to avoid mismatches (can be overridden by user)
+export NEMOCLAW_ACCESS_TOKEN="${NEMOCLAW_ACCESS_TOKEN:-nemoclaw-stable-2026}"
+
+# Auto-detect Google Gemini if key is present
+if [ -n "${GOOGLE_API_KEY:-}" ]; then
+  echo "[gateway] GOOGLE_API_KEY detected: auto-configuring Google Gemini..." >&2
+  export NEMOCLAW_PROVIDER_KEY="${NEMOCLAW_PROVIDER_KEY:-google-api}"
+  export NEMOCLAW_MODEL="${NEMOCLAW_MODEL:-gemini-2.0-flash}"
+fi
+
 # ── Privileged setup: Volumes and Users ──────────────────────────
 # Perform all operations that require CAP_DAC_OVERRIDE/privileged access
 # BEFORE dropping capabilities or re-execing via capsh.
@@ -277,8 +287,11 @@ if ('minimax' in model_ref.lower() or 'gemini' in model_ref.lower()) and '/' not
     modified = True
 
 # 6. Ensure stable Access Token
-config.setdefault('gateway', {}).setdefault('controlUi', {})['accessToken'] = os.environ.get('NEMOCLAW_ACCESS_TOKEN')
-modified = True
+token = os.environ.get('NEMOCLAW_ACCESS_TOKEN')
+if token:
+    print(f'[gateway] dynamic-config: enforcing stable access token: {token[:8]}...')
+    config.setdefault('gateway', {}).setdefault('controlUi', {})['accessToken'] = token
+    modified = True
 
 # 7. Remove legacy keys that cause validation errors
 if 'defaults' in config:
