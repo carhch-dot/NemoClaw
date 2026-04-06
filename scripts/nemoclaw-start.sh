@@ -247,14 +247,11 @@ modified = True
 
 # 4. Patch Primary Model Ref (Harden against missing prefix)
 # If model is MiniMax and lacks prefix, force 'inference/'
-model_ref = config.get('defaults', {}).get('primary_model_ref', '')
-if not model_ref and config.get('agents', {}).get('defaults', {}).get('model', {}).get('primary'):
-    model_ref = config['agents']['defaults']['model']['primary']
+model_ref = config.get('agents', {}).get('defaults', {}).get('model', {}).get('primary', '')
 
 if 'minimax' in model_ref.lower() and '/' not in model_ref:
     print(f'[gateway] dynamic-config: fixing missing prefix for MiniMax model: {model_ref}')
     new_ref = f'inference/{model_ref}'
-    config.setdefault('defaults', {})['primary_model_ref'] = new_ref
     config.setdefault('agents', {}).setdefault('defaults', {}).setdefault('model', {})['primary'] = new_ref
     
     # Also ensure the provider is 'inference'
@@ -263,6 +260,12 @@ if 'minimax' in model_ref.lower() and '/' not in model_ref:
             if m.get('id') == model_ref:
                 print(f'[gateway] dynamic-config: updating provider model name for {model_ref}')
                 m['name'] = new_ref
+    modified = True
+
+# 5. Remove legacy keys that cause validation errors
+if 'defaults' in config:
+    print(f'[gateway] dynamic-config: removing legacy top-level defaults key')
+    del config['defaults']
     modified = True
 
 if modified:
