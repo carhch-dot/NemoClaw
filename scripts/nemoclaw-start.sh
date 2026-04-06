@@ -254,13 +254,20 @@ if 'minimax' in model_ref.lower() and '/' not in model_ref:
     new_ref = f'inference/{model_ref}'
     config.setdefault('agents', {}).setdefault('defaults', {}).setdefault('model', {})['primary'] = new_ref
     
-    # Also ensure the provider is 'inference'
+    # Also ensure the provider is 'inference' and has the correct baseUrl/models
     for p_id, p_cfg in config.get('models', {}).get('providers', {}).items():
+        # Force root domain for MiniMax if it has /v1 (common 404 source)
+        base_url = p_cfg.get('baseUrl', '')
+        if 'minimax.io/v1' in base_url or 'minimax.chat/v1' in base_url:
+            print(f'[gateway] dynamic-config: fixing MiniMax baseUrl to root domain: {base_url}')
+            p_cfg['baseUrl'] = base_url.replace('/v1', '')
+            modified = True
+            
         for m in p_cfg.get('models', []):
             if m.get('id') == model_ref:
                 print(f'[gateway] dynamic-config: updating provider model name for {model_ref}')
                 m['name'] = new_ref
-    modified = True
+                modified = True
 
 # 5. Remove legacy keys that cause validation errors
 if 'defaults' in config:
