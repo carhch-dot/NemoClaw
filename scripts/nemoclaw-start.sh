@@ -233,7 +233,7 @@ modified = True
 token = os.environ.get('NEMOCLAW_ACCESS_TOKEN', '')
 if token:
     print(f'[gateway] dynamic-config: enforcing stable access token: {token[:8]}...')
-    config.setdefault('gateway', {}).setdefault('controlUi', {})['accessToken'] = token
+    config.setdefault('gateway', {}).setdefault('auth', {})['token'] = token
     modified = True
 
 # 4. Patch Trusted Proxies
@@ -349,7 +349,7 @@ try:
 except Exception:
     print('')
 else:
-    print(cfg.get('gateway', {}).get('controlUi', {}).get('accessToken', ''))
+    print(cfg.get('gateway', {}).get('auth', {}).get('token', ''))
 PYTOKEN
   )"
 
