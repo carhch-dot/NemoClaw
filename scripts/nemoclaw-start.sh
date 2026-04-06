@@ -602,11 +602,11 @@ if [ ${#NEMOCLAW_CMD[@]} -gt 0 ]; then
   exec gosu sandbox "${NEMOCLAW_CMD[@]}"
 fi
 
-# SECURITY: Ensure gateway logs and npm cache are writable
-mkdir -p /sandbox/.npm
+# SECURITY: Ensure gateway logs and npm cache are writable in /tmp
+mkdir -p /tmp/.npm
 touch /tmp/gateway.log /tmp/auto-pair.log
-chown -R gateway:gateway /tmp/gateway.log /tmp/auto-pair.log /sandbox/.npm
-chmod -R 777 /sandbox/.npm
+chown -R gateway:gateway /tmp/gateway.log /tmp/auto-pair.log /tmp/.npm
+chmod -R 777 /tmp/.npm
 chmod 666 /tmp/gateway.log /tmp/auto-pair.log
 
 # Verify ALL symlinks in .openclaw point to expected .openclaw-data targets.
@@ -641,11 +641,11 @@ fi
 # We use a writable prefix in /tmp to bypass sandbox permission errors
 echo "[gateway] checking for OpenClaw updates..." >&2
 export NPM_CONFIG_PREFIX=/tmp/npm-global
-export NPM_CONFIG_CACHE=/tmp/npm-cache
+export NPM_CONFIG_CACHE=/tmp/.npm
 export PATH="/tmp/npm-global/bin:$PATH"
-mkdir -p /tmp/npm-global /tmp/npm-cache
+mkdir -p /tmp/npm-global /tmp/.npm
 npm install -g openclaw@latest --no-audit --no-fund || true
-OPENCLAW="$(command -v openclaw)"
+OPENCLAW="$(command -v openclaw)" || OPENCLAW="/usr/local/bin/openclaw"
 
 # Start the gateway as the 'gateway' user.
 # IMPORTANT: We MUST redirect to /tmp/gateway.log so the auto-pair watcher works.
