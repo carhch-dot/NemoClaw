@@ -15,9 +15,9 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        NEMOCLAW_MODEL: ${NEMOCLAW_MODEL:-nvidia/nemotron-3-super-120b-a12b}
+        NEMOCLAW_MODEL: ${NEMOCLAW_MODEL:-nvidia/llama-3.1-8b-instruct}
         NEMOCLAW_PROVIDER_KEY: ${NEMOCLAW_PROVIDER_KEY:-nvidia}
-        NEMOCLAW_PRIMARY_MODEL_REF: ${NEMOCLAW_MODEL:-nvidia/nemotron-3-super-120b-a12b}
+        NEMOCLAW_PRIMARY_MODEL_REF: ${NEMOCLAW_MODEL:-nvidia/llama-3.1-8b-instruct}
         NEMOCLAW_INFERENCE_BASE_URL: ${NEMOCLAW_INFERENCE_BASE_URL:-https://integrate.api.nvidia.com/v1}
         NEMOCLAW_INFERENCE_API: ${NEMOCLAW_INFERENCE_API:-openai-completions}
         CHAT_UI_URL: ${CHAT_UI_URL:-http://localhost:18789}
@@ -53,11 +53,12 @@ services:
     # Dokploy Docker Compose needs explicit Traefik labels to route the domain.
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.nemoclaw.rule=Host(`${CHAT_UI_DOMAIN}`)"
-      - "traefik.http.services.nemoclaw.loadbalancer.server.port=18789"
-      - "traefik.http.routers.nemoclaw.entrypoints=websecure"
-      - "traefik.http.routers.nemoclaw.tls=true"
-      - "traefik.http.routers.nemoclaw.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.nemoclaw-custom.rule=Host(`${CHAT_UI_DOMAIN}`)"
+      - "traefik.http.services.nemoclaw-custom.loadbalancer.server.port=18789"
+      - "traefik.http.routers.nemoclaw-custom.entrypoints=websecure"
+      - "traefik.http.routers.nemoclaw-custom.tls=true"
+      - "traefik.http.routers.nemoclaw-custom.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.nemoclaw-custom.priority=1000"
       - "traefik.docker.network=dokploy-network"
 
     networks:

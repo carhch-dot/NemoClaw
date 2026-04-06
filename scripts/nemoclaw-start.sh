@@ -24,6 +24,10 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
+# Ensure log files are writable by both root and non-root users
+touch /tmp/gateway.log /tmp/auto-pair.log
+chmod 666 /tmp/gateway.log /tmp/auto-pair.log
+
 # Harden: limit process count to prevent fork bombs (ref: #809)
 # Best-effort: some container runtimes (e.g., brev) restrict ulimit
 # modification, returning "Invalid argument". Warn but don't block startup.
@@ -567,15 +571,9 @@ if [ ${#NEMOCLAW_CMD[@]} -gt 0 ]; then
   exec gosu sandbox "${NEMOCLAW_CMD[@]}"
 fi
 
-# SECURITY: Protect gateway log from sandbox user tampering
-touch /tmp/gateway.log
-chown gateway:gateway /tmp/gateway.log
-chmod 600 /tmp/gateway.log
-
-# Separate log for auto-pair so gateway user can write to it
-touch /tmp/auto-pair.log
-chown gateway:gateway /tmp/auto-pair.log
-chmod 600 /tmp/auto-pair.log
+# SECURITY: Ensure gateway logs are owned by the gateway user
+chown gateway:gateway /tmp/gateway.log /tmp/auto-pair.log
+chmod 666 /tmp/gateway.log /tmp/auto-pair.log
 
 # Verify ALL symlinks in .openclaw point to expected .openclaw-data targets.
 # Dynamic scan so future OpenClaw symlinks are covered automatically.
@@ -603,9 +601,7 @@ if command -v chattr >/dev/null 2>&1; then
   done
 fi
 
-# Ensure log file is writable by the 'gateway' user (privileged setup stage)
-touch /tmp/gateway.log
-chmod 666 /tmp/gateway.log
+# Gateway log is already set up at the script entrypoint
 
 # Start the gateway as the 'gateway' user.
 # Pipe to both stdout and log file so auto-pair can see codes and Dokploy shows errors.
