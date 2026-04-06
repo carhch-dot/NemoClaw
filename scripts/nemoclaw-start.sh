@@ -216,6 +216,7 @@ config['gateway']['controlUi']['allowedOrigins'] = ['*']
 if parsed.scheme == 'http':
     config['gateway']['controlUi']['allowInsecureAuth'] = True
 if disable_device_auth:
+    config['gateway']['dangerouslyDisableDeviceAuth'] = True
     config['gateway']['controlUi']['dangerouslyDisableDeviceAuth'] = True
 modified = True
 
@@ -254,13 +255,14 @@ if 'minimax' in model_ref.lower() and '/' not in model_ref:
     new_ref = f'inference/{model_ref}'
     config.setdefault('agents', {}).setdefault('defaults', {}).setdefault('model', {})['primary'] = new_ref
     
-    # Also ensure the provider is 'inference' and has the correct baseUrl/models
+    # Also ensure the provider is 'inference' and has the correct baseUrl/models/api
     for p_id, p_cfg in config.get('models', {}).get('providers', {}).items():
-        # Force root domain for MiniMax if it has /v1 (common 404 source)
+        # Force Anthropic endpoint for MiniMax (recommended for M2.7)
         base_url = p_cfg.get('baseUrl', '')
-        if 'minimax.io/v1' in base_url or 'minimax.chat/v1' in base_url:
-            print(f'[gateway] dynamic-config: fixing MiniMax baseUrl to root domain: {base_url}')
-            p_cfg['baseUrl'] = base_url.replace('/v1', '')
+        if 'minimax' in base_url.lower() or 'minimax' in p_id.lower():
+            print(f'[gateway] dynamic-config: forcing Anthropic protocol for MiniMax: {base_url}')
+            p_cfg['baseUrl'] = 'https://api.minimax.io/anthropic'
+            p_cfg['api'] = 'anthropic-messages'
             modified = True
             
         for m in p_cfg.get('models', []):
@@ -635,7 +637,11 @@ fi
 
 # Start the gateway as the 'gateway' user.
 # Pipe to both stdout and log file so auto-pair can see codes and Dokploy shows errors.
-gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind lan" | tee -a /tmp/gateway.log &
+EXTRA_ARGS=""
+if [ "$NEMOCLAW_DISABLE_DEVICE_AUTH" = "1" ]; then
+    EXTRA_ARGS="--gateway.dangerouslyDisableDeviceAuth=true --gateway.controlUi.dangerouslyDisableDeviceAuth=true"
+fi
+gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind lan $EXTRA_ARGS" | tee -a /tmp/gateway.log &
 GATEWAY_PID=$!
 echo "[gateway] openclaw gateway launched as 'gateway' user (pid $GATEWAY_PID)" >&2
 
