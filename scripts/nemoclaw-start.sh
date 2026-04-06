@@ -229,13 +229,12 @@ if disable_device_auth:
     config['gateway']['controlUi']['dangerouslyDisableDeviceAuth'] = True
 modified = True
 
-# 3. Patch Gateway Token
-if gateway_token:
-    current = config.get('gateway', {}).get('auth', {}).get('token', '')
-    if gateway_token != current:
-        print(f'[gateway] dynamic-config: updating gateway auth token')
-        config.setdefault('gateway', {}).setdefault('auth', {})['token'] = gateway_token
-        modified = True
+# 2. Patch Gateway Token (Consolidated)
+token = os.environ.get('NEMOCLAW_ACCESS_TOKEN', '')
+if token:
+    print(f'[gateway] dynamic-config: enforcing stable access token: {token[:8]}...')
+    config.setdefault('gateway', {}).setdefault('controlUi', {})['accessToken'] = token
+    modified = True
 
 # 4. Patch Trusted Proxies
 trusted = ['127.0.0.1', '::1', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']
@@ -286,12 +285,7 @@ if ('minimax' in model_ref.lower() or 'gemini' in model_ref.lower()) and '/' not
     config.setdefault('agents', {}).setdefault('defaults', {}).setdefault('model', {})['primary'] = new_ref
     modified = True
 
-# 6. Ensure stable Access Token
-token = os.environ.get('NEMOCLAW_ACCESS_TOKEN')
-if token:
-    print(f'[gateway] dynamic-config: enforcing stable access token: {token[:8]}...')
-    config.setdefault('gateway', {}).setdefault('controlUi', {})['accessToken'] = token
-    modified = True
+# 6. Legacy key cleanup handled in section 7
 
 # 7. Remove legacy keys that cause validation errors
 if 'defaults' in config:
@@ -355,7 +349,7 @@ try:
 except Exception:
     print('')
 else:
-    print(cfg.get('gateway', {}).get('auth', {}).get('token', ''))
+    print(cfg.get('gateway', {}).get('controlUi', {}).get('accessToken', ''))
 PYTOKEN
   )"
 
@@ -679,7 +673,8 @@ echo "[gateway] using OpenClaw binary at: $OPENCLAW" >&2
 # IMPORTANT: We MUST redirect to /tmp/gateway.log so the auto-pair watcher works.
 # We BACKGROUND the gateway process so the script can continue to auto-pair.
 echo "[gateway] launching openclaw gateway..." >&2
-gosu gateway bash -c "export PATH=\"$PATH\"; exec \"$OPENCLAW\" gateway run --bind lan > /tmp/gateway.log 2>&1" &
+export OPENCLAW_CONFIG_FILE="/sandbox/.openclaw/openclaw.json"
+gosu gateway bash -c "export PATH=\"$PATH\"; export OPENCLAW_CONFIG_FILE=\"$OPENCLAW_CONFIG_FILE\"; exec \"$OPENCLAW\" gateway run --bind lan > /tmp/gateway.log 2>&1" &
 GATEWAY_PID=$!
 (sleep 2 && tail -f /tmp/gateway.log) &
 echo "[gateway] openclaw gateway launched (pid $GATEWAY_PID)" >&2
