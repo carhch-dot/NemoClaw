@@ -603,9 +603,9 @@ if command -v chattr >/dev/null 2>&1; then
   done
 fi
 
-echo "[gateway] network diagnostics:" >&2
-ip addr >&2
-ss -tuln >&2 || echo "ss not available" >&2
+# Ensure log file is writable by the 'gateway' user (privileged setup stage)
+touch /tmp/gateway.log
+chmod 666 /tmp/gateway.log
 
 # Start the gateway as the 'gateway' user.
 # Pipe to both stdout and log file so auto-pair can see codes and Dokploy shows errors.
