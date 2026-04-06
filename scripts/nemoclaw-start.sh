@@ -245,6 +245,26 @@ if not config['channels']['telegram'].get('groupPolicy'):
 config['channels']['telegram']['enabled'] = bool(tg_token)
 modified = True
 
+# 4. Patch Primary Model Ref (Harden against missing prefix)
+# If model is MiniMax and lacks prefix, force 'inference/'
+model_ref = config.get('defaults', {}).get('primary_model_ref', '')
+if not model_ref and config.get('agents', {}).get('defaults', {}).get('model', {}).get('primary'):
+    model_ref = config['agents']['defaults']['model']['primary']
+
+if 'minimax' in model_ref.lower() and '/' not in model_ref:
+    print(f'[gateway] dynamic-config: fixing missing prefix for MiniMax model: {model_ref}')
+    new_ref = f'inference/{model_ref}'
+    config.setdefault('defaults', {})['primary_model_ref'] = new_ref
+    config.setdefault('agents', {}).setdefault('defaults', {}).setdefault('model', {})['primary'] = new_ref
+    
+    # Also ensure the provider is 'inference'
+    for p_id, p_cfg in config.get('models', {}).get('providers', {}).items():
+        for m in p_cfg.get('models', []):
+            if m.get('id') == model_ref:
+                print(f'[gateway] dynamic-config: updating provider model name for {model_ref}')
+                m['name'] = new_ref
+    modified = True
+
 if modified:
     try:
         os.chmod(path, 0o600)

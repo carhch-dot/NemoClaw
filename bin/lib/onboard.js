@@ -167,6 +167,17 @@ const REMOTE_PROVIDER_CONFIG = {
     defaultModel: "",
     skipVerify: true,
   },
+  "minimax-api": {
+    label: "MiniMax",
+    providerName: "minimax-api",
+    providerType: "openai",
+    credentialEnv: "MINIMAX_API_KEY",
+    endpointUrl: "https://api.minimax.chat/v1",
+    helpUrl: "https://platform.minimaxi.com/",
+    modelMode: "input",
+    defaultModel: "MiniMax-M2.7",
+    skipVerify: true,
+  },
 };
 
 const REMOTE_MODEL_OPTIONS = {
@@ -1135,8 +1146,11 @@ function getSandboxInferenceConfig(model, provider = null, preferredInferenceApi
       providerKey = "openai";
       primaryModelRef = `openai/${model}`;
       break;
+    case "minimax-api":
+      providerKey = "inference";
+      primaryModelRef = `inference/${model}`;
+      break;
     case "anthropic-prod":
-    case "compatible-anthropic-endpoint":
       providerKey = "anthropic";
       primaryModelRef = `anthropic/${model}`;
       inferenceBaseUrl = "https://inference.local";
@@ -1992,6 +2006,7 @@ function getNonInteractiveProvider() {
     nim: "nim-local",
     vllm: "vllm",
     anthropiccompatible: "anthropicCompatible",
+    minimax: "minimax-api",
   };
   const normalized = aliases[providerKey] || providerKey;
   const validProviders = new Set([
@@ -2004,6 +2019,7 @@ function getNonInteractiveProvider() {
     "custom",
     "nim-local",
     "vllm",
+    "minimax-api",
   ]);
   if (!validProviders.has(normalized)) {
     console.error(`  Unsupported NEMOCLAW_PROVIDER: ${providerKey}`);
