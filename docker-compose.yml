@@ -15,9 +15,9 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        NEMOCLAW_MODEL: ${NEMOCLAW_MODEL:-meta/llama-3.1-8b-instruct}
+        NEMOCLAW_MODEL: ${NEMOCLAW_MODEL:-MiniMax-M2.7}
         NEMOCLAW_PROVIDER_KEY: ${NEMOCLAW_PROVIDER_KEY:-nvidia}
-        NEMOCLAW_PRIMARY_MODEL_REF: ${NEMOCLAW_MODEL:-meta/llama-3.1-8b-instruct}
+        NEMOCLAW_PRIMARY_MODEL_REF: ${NEMOCLAW_MODEL:-MiniMax-M2.7}
         NEMOCLAW_INFERENCE_BASE_URL: ${NEMOCLAW_INFERENCE_BASE_URL:-https://integrate.api.nvidia.com/v1}
         NEMOCLAW_INFERENCE_API: ${NEMOCLAW_INFERENCE_API:-openai-completions}
         CHAT_UI_URL: ${CHAT_UI_URL:-http://localhost:18789}
