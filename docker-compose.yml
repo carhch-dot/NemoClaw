@@ -15,9 +15,9 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        NEMOCLAW_MODEL: ${NEMOCLAW_MODEL:-nvidia/llama-3.1-8b-instruct}
+        NEMOCLAW_MODEL: ${NEMOCLAW_MODEL:-meta/llama-3.1-8b-instruct}
         NEMOCLAW_PROVIDER_KEY: ${NEMOCLAW_PROVIDER_KEY:-nvidia}
-        NEMOCLAW_PRIMARY_MODEL_REF: ${NEMOCLAW_MODEL:-nvidia/llama-3.1-8b-instruct}
+        NEMOCLAW_PRIMARY_MODEL_REF: ${NEMOCLAW_MODEL:-meta/llama-3.1-8b-instruct}
         NEMOCLAW_INFERENCE_BASE_URL: ${NEMOCLAW_INFERENCE_BASE_URL:-https://integrate.api.nvidia.com/v1}
         NEMOCLAW_INFERENCE_API: ${NEMOCLAW_INFERENCE_API:-openai-completions}
         CHAT_UI_URL: ${CHAT_UI_URL:-http://localhost:18789}
@@ -33,6 +33,7 @@ services:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - ALLOWED_CHAT_IDS=${ALLOWED_CHAT_IDS}
       - NEMOCLAW_DISABLE_DEVICE_AUTH=${NEMOCLAW_DISABLE_DEVICE_AUTH:-1}
+      - MINIMAX_API_KEY=${MINIMAX_API_KEY}
 
     # Override the default CMD ("/bin/bash") which exits immediately in background.
     # The entrypoint script strips this word, allowing the gateway daemon to start.

@@ -109,6 +109,14 @@ export function getProviderSelectionConfig(
         credentialEnv: DEFAULT_ROUTE_CREDENTIAL_ENV,
         providerLabel: "Local Ollama",
       };
+    case "minimax-api":
+      return {
+        ...base,
+        endpointUrl: "https://api.minimax.chat/v1",
+        model: model || "minimax-text-01",
+        credentialEnv: "MINIMAX_API_KEY",
+        providerLabel: "MiniMax",
+      };
     default:
       return null;
   }
