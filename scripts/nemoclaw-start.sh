@@ -254,18 +254,24 @@ for p_id, p_cfg in config.get('models', {}).get('providers', {}).items():
             p_cfg['baseUrl'] = 'https://api.minimax.io/v1'
             p_cfg['api'] = 'openai-chat'
             modified = True
+    elif 'google' in base_url.lower() or 'google' in p_id.lower() or 'gemini' in p_id.lower():
+        if p_cfg.get('api') != 'google-ai':
+            print(f'[gateway] dynamic-config: forcing Google AI protocol for Gemini: {p_id}')
+            p_cfg['api'] = 'google-ai'
+            p_cfg['baseUrl'] = 'https://generativelanguage.googleapis.com/v1beta'
+            modified = True
         
         # Ensure models in this provider are named correctly for the inference/ prefix
         for m in p_cfg.get('models', []):
-            if 'minimax' in m.get('id', '').lower() and (not m.get('name') or '/' not in m.get('name')):
+            if ('minimax' in m.get('id', '').lower() or 'gemini' in m.get('id', '').lower()) and (not m.get('name') or '/' not in m.get('name')):
                 print(f'[gateway] dynamic-config: updating provider model name for {m["id"]}')
                 m['name'] = f'inference/{m["id"]}'
                 modified = True
 
 # 5. Patch Primary Model Ref (Harden against missing prefix)
 model_ref = config.get('agents', {}).get('defaults', {}).get('model', {}).get('primary', '')
-if 'minimax' in model_ref.lower() and '/' not in model_ref:
-    print(f'[gateway] dynamic-config: fixing missing prefix for MiniMax model: {model_ref}')
+if ('minimax' in model_ref.lower() or 'gemini' in model_ref.lower()) and '/' not in model_ref:
+    print(f'[gateway] dynamic-config: fixing missing prefix for AI model: {model_ref}')
     new_ref = f'inference/{model_ref}'
     config.setdefault('agents', {}).setdefault('defaults', {}).setdefault('model', {})['primary'] = new_ref
     modified = True

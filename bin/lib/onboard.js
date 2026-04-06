@@ -178,6 +178,17 @@ const REMOTE_PROVIDER_CONFIG = {
     defaultModel: "MiniMax-M2.7",
     skipVerify: true,
   },
+  "google-api": {
+    label: "Google Gemini",
+    providerName: "google-api",
+    providerType: "google-ai",
+    credentialEnv: "GOOGLE_API_KEY",
+    endpointUrl: "https://generativelanguage.googleapis.com/v1beta",
+    helpUrl: "https://aistudio.google.com/app/apikey",
+    modelMode: "input",
+    defaultModel: "gemini-2.0-flash",
+    skipVerify: true,
+  },
 };
 
 const REMOTE_MODEL_OPTIONS = {
@@ -1151,6 +1162,12 @@ function getSandboxInferenceConfig(model, provider = null, preferredInferenceApi
       primaryModelRef = `inference/${model}`;
       inferenceApi = "openai-chat";
       inferenceBaseUrl = "https://api.minimax.io/v1";
+      break;
+    case "google-api":
+      providerKey = "inference";
+      primaryModelRef = `inference/${model}`;
+      inferenceApi = "google-ai";
+      inferenceBaseUrl = "https://generativelanguage.googleapis.com/v1beta";
       break;
     case "anthropic-prod":
       providerKey = "anthropic";

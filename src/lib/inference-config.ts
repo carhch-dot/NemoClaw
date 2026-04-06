@@ -109,6 +109,14 @@ export function getProviderSelectionConfig(
         credentialEnv: DEFAULT_ROUTE_CREDENTIAL_ENV,
         providerLabel: "Local Ollama",
       };
+    case "google-api":
+      return {
+        ...base,
+        endpointUrl: "https://generativelanguage.googleapis.com/v1beta",
+        model: model || "gemini-2.0-flash",
+        credentialEnv: "GOOGLE_API_KEY",
+        providerLabel: "Google Gemini",
+      };
     case "minimax-api":
       return {
         ...base,
