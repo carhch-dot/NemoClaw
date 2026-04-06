@@ -248,13 +248,19 @@ modified = True
 # 4. Patch MiniMax Providers (Force Anthropic protocol and baseUrl)
 for p_id, p_cfg in config.get('models', {}).get('providers', {}).items():
     base_url = p_cfg.get('baseUrl', '')
-    p_api = p_cfg.get('api', '')
     if 'minimax' in base_url.lower() or 'minimax' in p_id.lower():
         if p_cfg.get('baseUrl') != 'https://api.minimax.io/anthropic' or p_cfg.get('api') != 'anthropic-messages':
             print(f'[gateway] dynamic-config: forcing Anthropic protocol for MiniMax: {p_id}')
             p_cfg['baseUrl'] = 'https://api.minimax.io/anthropic'
             p_cfg['api'] = 'anthropic-messages'
             modified = True
+        
+        # Ensure models in this provider are named correctly for the inference/ prefix
+        for m in p_cfg.get('models', []):
+            if 'minimax' in m.get('id', '').lower() and (not m.get('name') or '/' not in m.get('name')):
+                print(f'[gateway] dynamic-config: updating provider model name for {m["id"]}')
+                m['name'] = f'inference/{m["id"]}'
+                modified = True
 
 # 5. Patch Primary Model Ref (Harden against missing prefix)
 model_ref = config.get('agents', {}).get('defaults', {}).get('model', {}).get('primary', '')
@@ -263,7 +269,6 @@ if 'minimax' in model_ref.lower() and '/' not in model_ref:
     new_ref = f'inference/{model_ref}'
     config.setdefault('agents', {}).setdefault('defaults', {}).setdefault('model', {})['primary'] = new_ref
     modified = True
-                modified = True
 
 # 5. Remove legacy keys that cause validation errors
 if 'defaults' in config:
@@ -633,18 +638,23 @@ fi
 # Gateway log is already set up at the script entrypoint
 
 # Ensure OpenClaw is up-to-date (fixes regressions in 2026.3.11)
-# We run as root here to ensure binary replacement in /usr/local succeeds
+# We use a writable prefix in /tmp to bypass sandbox permission errors
 echo "[gateway] checking for OpenClaw updates..." >&2
-openclaw update || true
+export NPM_CONFIG_PREFIX=/tmp/npm-global
+export NPM_CONFIG_CACHE=/tmp/npm-cache
+export PATH="/tmp/npm-global/bin:$PATH"
+mkdir -p /tmp/npm-global /tmp/npm-cache
+npm install -g openclaw@latest --no-audit --no-fund || true
+OPENCLAW="$(command -v openclaw)"
 
 # Start the gateway as the 'gateway' user.
 # IMPORTANT: We MUST redirect to /tmp/gateway.log so the auto-pair watcher works.
-# We also background a 'tail' to ensure logs appear in Dokploy.
+# We BACKGROUND the gateway process so the script can continue to auto-pair.
 echo "[gateway] launching openclaw gateway..." >&2
-gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind lan > /tmp/gateway.log 2>&1" &
+gosu gateway bash -c "export PATH=\"$PATH\"; exec \"$OPENCLAW\" gateway run --bind lan > /tmp/gateway.log 2>&1" &
 GATEWAY_PID=$!
 (sleep 2 && tail -f /tmp/gateway.log) &
-echo "[gateway] openclaw gateway launched as 'gateway' user (pid $GATEWAY_PID)" >&2
+echo "[gateway] openclaw gateway launched (pid $GATEWAY_PID)" >&2
 
 # start_auto_pair
 start_auto_pair
