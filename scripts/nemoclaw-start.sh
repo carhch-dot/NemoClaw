@@ -249,10 +249,10 @@ modified = True
 for p_id, p_cfg in config.get('models', {}).get('providers', {}).items():
     base_url = p_cfg.get('baseUrl', '')
     if 'minimax' in base_url.lower() or 'minimax' in p_id.lower():
-        if p_cfg.get('baseUrl') != 'https://api.minimax.io/anthropic' or p_cfg.get('api') != 'anthropic-messages':
-            print(f'[gateway] dynamic-config: forcing Anthropic protocol for MiniMax: {p_id}')
-            p_cfg['baseUrl'] = 'https://api.minimax.io/anthropic'
-            p_cfg['api'] = 'anthropic-messages'
+        if p_cfg.get('baseUrl') != 'https://api.minimax.io/v1' or p_cfg.get('api') != 'openai-chat':
+            print(f'[gateway] dynamic-config: forcing OpenAI protocol for MiniMax: {p_id}')
+            p_cfg['baseUrl'] = 'https://api.minimax.io/v1'
+            p_cfg['api'] = 'openai-chat'
             modified = True
         
         # Ensure models in this provider are named correctly for the inference/ prefix
