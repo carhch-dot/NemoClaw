@@ -55,9 +55,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.nemoclaw-custom.rule=Host(`${CHAT_UI_DOMAIN}`)"
       - "traefik.http.services.nemoclaw-custom.loadbalancer.server.port=18789"
-      - "traefik.http.routers.nemoclaw-custom.entrypoints=websecure"
       - "traefik.http.routers.nemoclaw-custom.tls=true"
-      - "traefik.http.routers.nemoclaw-custom.tls.certresolver=letsencrypt"
       - "traefik.http.routers.nemoclaw-custom.priority=1000"
       - "traefik.docker.network=dokploy-network"
 
