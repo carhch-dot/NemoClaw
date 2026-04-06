@@ -654,22 +654,18 @@ fi
 
 # Gateway log is already set up at the script entrypoint
 
-# ── Persistent OpenClaw binaries ──────────────────────────────────
-# Move binaries and cache to a persistent volume so upgrades survive redeploys
-export NPM_CONFIG_PREFIX="/sandbox/.openclaw-data/npm-global"
-export NPM_CONFIG_CACHE="/sandbox/.openclaw-data/.npm"
+# Ensure OpenClaw is up-to-date (fixes regressions)
+export NPM_CONFIG_PREFIX="/tmp/npm-global"
+export NPM_CONFIG_CACHE="/tmp/.npm"
 export PATH="${NPM_CONFIG_PREFIX}/bin:$PATH"
+mkdir -p /tmp/npm-global /tmp/.npm
 
-mkdir -p "${NPM_CONFIG_PREFIX}" "${NPM_CONFIG_CACHE}"
-chown -R gateway:sandbox "${NPM_CONFIG_PREFIX}" "${NPM_CONFIG_CACHE}" 2>/dev/null || true
-chmod -R 775 "${NPM_CONFIG_PREFIX}" "${NPM_CONFIG_CACHE}" 2>/dev/null || true
-
-# Skip upgrade if already present in persistent storage
-if [ ! -f "${NPM_CONFIG_PREFIX}/bin/openclaw" ]; then
-  echo "[gateway] installing OpenClaw to persistent volume (first time)..." >&2
+# Skip upgrade if already present to speed up restarts
+if [ ! -f /tmp/npm-global/bin/openclaw ]; then
+  echo "[gateway] installing OpenClaw to /tmp (this may take a minute)..." >&2
   npm install -g openclaw@latest --no-audit --no-fund --quiet --no-progress || true
 else
-  echo "[gateway] OpenClaw already present in persistent volume, skipping install." >&2
+  echo "[gateway] OpenClaw already present in /tmp, skipping install." >&2
 fi
 OPENCLAW="$(command -v openclaw)" || OPENCLAW="/usr/local/bin/openclaw"
 echo "[gateway] using OpenClaw binary at: $OPENCLAW" >&2
