@@ -245,29 +245,24 @@ if not config['channels']['telegram'].get('groupPolicy'):
 config['channels']['telegram']['enabled'] = bool(tg_token)
 modified = True
 
-# 4. Patch Primary Model Ref (Harden against missing prefix)
-# If model is MiniMax and lacks prefix, force 'inference/'
-model_ref = config.get('agents', {}).get('defaults', {}).get('model', {}).get('primary', '')
+# 4. Patch MiniMax Providers (Force Anthropic protocol and baseUrl)
+for p_id, p_cfg in config.get('models', {}).get('providers', {}).items():
+    base_url = p_cfg.get('baseUrl', '')
+    p_api = p_cfg.get('api', '')
+    if 'minimax' in base_url.lower() or 'minimax' in p_id.lower():
+        if p_cfg.get('baseUrl') != 'https://api.minimax.io/anthropic' or p_cfg.get('api') != 'anthropic-messages':
+            print(f'[gateway] dynamic-config: forcing Anthropic protocol for MiniMax: {p_id}')
+            p_cfg['baseUrl'] = 'https://api.minimax.io/anthropic'
+            p_cfg['api'] = 'anthropic-messages'
+            modified = True
 
+# 5. Patch Primary Model Ref (Harden against missing prefix)
+model_ref = config.get('agents', {}).get('defaults', {}).get('model', {}).get('primary', '')
 if 'minimax' in model_ref.lower() and '/' not in model_ref:
     print(f'[gateway] dynamic-config: fixing missing prefix for MiniMax model: {model_ref}')
     new_ref = f'inference/{model_ref}'
     config.setdefault('agents', {}).setdefault('defaults', {}).setdefault('model', {})['primary'] = new_ref
-    
-    # Also ensure the provider is 'inference' and has the correct baseUrl/models/api
-    for p_id, p_cfg in config.get('models', {}).get('providers', {}).items():
-        # Force Anthropic endpoint for MiniMax (recommended for M2.7)
-        base_url = p_cfg.get('baseUrl', '')
-        if 'minimax' in base_url.lower() or 'minimax' in p_id.lower():
-            print(f'[gateway] dynamic-config: forcing Anthropic protocol for MiniMax: {base_url}')
-            p_cfg['baseUrl'] = 'https://api.minimax.io/anthropic'
-            p_cfg['api'] = 'anthropic-messages'
-            modified = True
-            
-        for m in p_cfg.get('models', []):
-            if m.get('id') == model_ref:
-                print(f'[gateway] dynamic-config: updating provider model name for {model_ref}')
-                m['name'] = new_ref
+    modified = True
                 modified = True
 
 # 5. Remove legacy keys that cause validation errors
@@ -602,9 +597,11 @@ if [ ${#NEMOCLAW_CMD[@]} -gt 0 ]; then
   exec gosu sandbox "${NEMOCLAW_CMD[@]}"
 fi
 
-# SECURITY: Ensure gateway logs are owned by the gateway user
+# SECURITY: Ensure gateway logs and npm cache are writable
+mkdir -p /sandbox/.npm
 touch /tmp/gateway.log /tmp/auto-pair.log
-chown gateway:gateway /tmp/gateway.log /tmp/auto-pair.log
+chown -R gateway:gateway /tmp/gateway.log /tmp/auto-pair.log /sandbox/.npm
+chmod -R 777 /sandbox/.npm
 chmod 666 /tmp/gateway.log /tmp/auto-pair.log
 
 # Verify ALL symlinks in .openclaw point to expected .openclaw-data targets.
@@ -636,13 +633,17 @@ fi
 # Gateway log is already set up at the script entrypoint
 
 # Ensure OpenClaw is up-to-date (fixes regressions in 2026.3.11)
-gosu gateway bash -c "\"$OPENCLAW\" update" || true
+# We run as root here to ensure binary replacement in /usr/local succeeds
+echo "[gateway] checking for OpenClaw updates..." >&2
+openclaw update || true
 
 # Start the gateway as the 'gateway' user.
-# IMPORTANT: We MUST use 'tee' so the auto-pair watcher can see the codes in /tmp/gateway.log.
+# IMPORTANT: We MUST redirect to /tmp/gateway.log so the auto-pair watcher works.
+# We also background a 'tail' to ensure logs appear in Dokploy.
 echo "[gateway] launching openclaw gateway..." >&2
-gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind lan 2>&1" | tee /tmp/gateway.log &
+gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind lan > /tmp/gateway.log 2>&1" &
 GATEWAY_PID=$!
+(sleep 2 && tail -f /tmp/gateway.log) &
 echo "[gateway] openclaw gateway launched as 'gateway' user (pid $GATEWAY_PID)" >&2
 
 # start_auto_pair
