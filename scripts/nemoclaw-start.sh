@@ -544,7 +544,7 @@ if [ "$(id -u)" -ne 0 ]; then
   chmod 600 /tmp/auto-pair.log
 
   # Start gateway in background, auto-pair, then wait
-  nohup "$OPENCLAW" gateway run --bind auto >/tmp/gateway.log 2>&1 &
+  nohup "$OPENCLAW" gateway run --bind 0.0.0.0 >/tmp/gateway.log 2>&1 &
   GATEWAY_PID=$!
   echo "[gateway] openclaw gateway launched (pid $GATEWAY_PID)" >&2
   start_auto_pair
@@ -605,7 +605,7 @@ fi
 
 # Start the gateway as the 'gateway' user.
 # Pipe to both stdout and log file so auto-pair can see codes and Dokploy shows errors.
-gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind auto" | tee -a /tmp/gateway.log &
+gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind 0.0.0.0" | tee -a /tmp/gateway.log &
 GATEWAY_PID=$!
 echo "[gateway] openclaw gateway launched as 'gateway' user (pid $GATEWAY_PID)" >&2
 
