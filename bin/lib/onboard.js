@@ -172,7 +172,7 @@ const REMOTE_PROVIDER_CONFIG = {
     providerName: "minimax-api",
     providerType: "anthropic",
     credentialEnv: "MINIMAX_API_KEY",
-    endpointUrl: "https://api.minimax.io/anthropic/v1",
+    endpointUrl: "https://api.minimax.io/anthropic",
     helpUrl: "https://platform.minimaxi.com/",
     modelMode: "input",
     defaultModel: "MiniMax-M2.7",
@@ -1150,7 +1150,7 @@ function getSandboxInferenceConfig(model, provider = null, preferredInferenceApi
       providerKey = "inference";
       primaryModelRef = `inference/${model}`;
       inferenceApi = "anthropic-messages";
-      inferenceBaseUrl = "https://inference.local/v1";
+      inferenceBaseUrl = "https://api.minimax.io/anthropic";
       break;
     case "anthropic-prod":
       providerKey = "anthropic";

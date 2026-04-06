@@ -112,7 +112,7 @@ export function getProviderSelectionConfig(
     case "minimax-api":
       return {
         ...base,
-        endpointUrl: "https://api.minimax.io/anthropic/v1",
+        endpointUrl: "https://api.minimax.io/anthropic",
         model: model || "minimax-text-01",
         credentialEnv: "MINIMAX_API_KEY",
         providerLabel: "MiniMax",

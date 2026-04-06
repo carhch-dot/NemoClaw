@@ -260,7 +260,7 @@ if 'minimax' in model_ref.lower() and '/' not in model_ref:
         base_url = p_cfg.get('baseUrl', '')
         if 'minimax' in base_url.lower() or 'minimax' in p_id.lower():
             print(f'[gateway] dynamic-config: forcing Anthropic protocol for MiniMax: {base_url}')
-            p_cfg['baseUrl'] = 'https://api.minimax.io/anthropic/v1'
+            p_cfg['baseUrl'] = 'https://api.minimax.io/anthropic'
             p_cfg['api'] = 'anthropic-messages'
             modified = True
             
@@ -635,10 +635,13 @@ fi
 
 # Gateway log is already set up at the script entrypoint
 
+# Ensure OpenClaw is up-to-date (fixes regressions in 2026.3.11)
+gosu gateway bash -c "\"$OPENCLAW\" update" || true
+
 # Start the gateway as the 'gateway' user.
-# Dokploy captures stdout/stderr automatically.
+# IMPORTANT: We MUST use 'tee' so the auto-pair watcher can see the codes in /tmp/gateway.log.
 echo "[gateway] launching openclaw gateway..." >&2
-gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind lan"
+gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind lan 2>&1" | tee /tmp/gateway.log &
 GATEWAY_PID=$!
 echo "[gateway] openclaw gateway launched as 'gateway' user (pid $GATEWAY_PID)" >&2
 
