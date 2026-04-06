@@ -1150,7 +1150,7 @@ function getSandboxInferenceConfig(model, provider = null, preferredInferenceApi
       providerKey = "inference";
       primaryModelRef = `inference/${model}`;
       inferenceApi = "anthropic-messages";
-      inferenceBaseUrl = "https://inference.local";
+      inferenceBaseUrl = "https://inference.local/v1";
       break;
     case "anthropic-prod":
       providerKey = "anthropic";

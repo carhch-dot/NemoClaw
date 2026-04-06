@@ -216,7 +216,6 @@ config['gateway']['controlUi']['allowedOrigins'] = ['*']
 if parsed.scheme == 'http':
     config['gateway']['controlUi']['allowInsecureAuth'] = True
 if disable_device_auth:
-    config['gateway']['dangerouslyDisableDeviceAuth'] = True
     config['gateway']['controlUi']['dangerouslyDisableDeviceAuth'] = True
 modified = True
 
@@ -604,6 +603,7 @@ if [ ${#NEMOCLAW_CMD[@]} -gt 0 ]; then
 fi
 
 # SECURITY: Ensure gateway logs are owned by the gateway user
+touch /tmp/gateway.log /tmp/auto-pair.log
 chown gateway:gateway /tmp/gateway.log /tmp/auto-pair.log
 chmod 666 /tmp/gateway.log /tmp/auto-pair.log
 
@@ -639,15 +639,13 @@ fi
 # Pipe to both stdout and log file so auto-pair can see codes and Dokploy shows errors.
 EXTRA_ARGS=""
 if [ "$NEMOCLAW_DISABLE_DEVICE_AUTH" = "1" ]; then
-    EXTRA_ARGS="--gateway.dangerouslyDisableDeviceAuth=true --gateway.controlUi.dangerouslyDisableDeviceAuth=true"
+    EXTRA_ARGS="--gateway.controlUi.dangerouslyDisableDeviceAuth=true"
 fi
 gosu gateway bash -c "exec \"$OPENCLAW\" gateway run --bind lan $EXTRA_ARGS" | tee -a /tmp/gateway.log &
 GATEWAY_PID=$!
 echo "[gateway] openclaw gateway launched as 'gateway' user (pid $GATEWAY_PID)" >&2
 
-# One-shot approval for the latest user pairing code (defense-in-depth)
-(sleep 10 && gosu gateway bash -c "exec \"$OPENCLAW\" pairing approve telegram KULM9PKU" 2>/dev/null || true) &
-
+# start_auto_pair
 start_auto_pair
 # start_telegram_bridge (Disabled: using built-in channel to avoid 409 conflict)
 print_dashboard_urls
